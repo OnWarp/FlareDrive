@@ -5,6 +5,10 @@ function hex(buf: ArrayBuffer | Uint8Array) {
   return [...u8].map((b) => b.toString(16).padStart(2, "0")).join("");
 }
 
+function toArrayBuffer(u8: Uint8Array): ArrayBuffer {
+  return u8.buffer.slice(u8.byteOffset, u8.byteOffset + u8.byteLength) as ArrayBuffer;
+}
+
 async function hmac(key: ArrayBuffer, msg: string | Uint8Array) {
   const raw = typeof msg === "string" ? encoder.encode(msg) : msg;
   const cryptoKey = await crypto.subtle.importKey(
@@ -32,10 +36,10 @@ export interface S3Target {
 
 function objectUrl(t: S3Target, key: string, query = "") {
   const base = t.endpoint.replace(/\/$/, "");
-  const path = `/${encodeURIComponent(t.bucket).replace(/%2F/g, "/")}/${key
-    .split("/")
-    .map(encodeURIComponent)
-    .join("/")}`;
+  const segs = [t.bucket, ...key.split("/").filter((s) => s.length > 0)].map(
+    (s) => encodeURIComponent(s).replace(/%2F/g, "/")
+  );
+  const path = "/" + segs.join("/");
   return `${base}${path}${query ? `?${query}` : ""}`;
 }
 
@@ -59,7 +63,9 @@ export async function s3Fetch(
   const canonicalHeaders = signedKeys.map((k) => `${k}:${headers.get(k)}\n`).join("");
   const signedHeaders = signedKeys.join(";");
   const canonicalQuery = [...url.searchParams]
-    .map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(v)}`)
+    .map(([k, v]) => [encodeURIComponent(k), encodeURIComponent(v)] as const)
+    .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))
+    .map(([k, v]) => `${k}=${v}`)
     .join("&");
   const canonicalUri = url.pathname.replace(/[!*'()]/g, (c) => `%${c.charCodeAt(0).toString(16).toUpperCase()}`);
   const canonicalRequest = [
@@ -74,7 +80,7 @@ export async function s3Fetch(
   const region = t.region && t.region !== "auto" ? t.region : "us-east-1";
   const scope = `${datetime.slice(0, 8)}/${region}/s3/aws4_request`;
   const stringToSign = `AWS4-HMAC-SHA256\n${datetime}\n${scope}\n${hashedRequest}`;
-  const dateKey = await hmac(encoder.encode("AWS4" + t.secretAccessKey).buffer as ArrayBuffer, datetime.slice(0, 8));
+  const dateKey = await hmac(toArrayBuffer(encoder.encode("AWS4" + t.secretAccessKey)), datetime.slice(0, 8));
   const dateRegionKey = await hmac(dateKey, region);
   const dateServiceKey = await hmac(dateRegionKey, "s3");
   const signingKey = await hmac(dateServiceKey, "aws4_request");
