@@ -20,7 +20,7 @@ import { useAppearance, type Appearance } from "./appearance";
 import { useLocale, useT } from "./i18n";
 import type { Locale } from "./i18n/types";
 import StoragePanel from "./StorageSettings";
-import { IconTip, SETTINGS_MAX, Section } from "./ui";
+import { IconTip, SETTINGS_MAX, Section, useCompactScreen } from "./ui";
 
 const VERSION = "0.2.0";
 const GITHUB = "https://github.com/OnWarp/FlareDrive";
@@ -34,6 +34,7 @@ export default function Settings({
   open: boolean;
   onClose: () => void;
 }) {
+  const compact = useCompactScreen();
   const t = useT();
   const { appearance, setAppearance } = useAppearance();
   const { locale, setLocale } = useLocale();
@@ -65,8 +66,14 @@ export default function Settings({
       open={open}
       onClose={onClose}
       fullWidth
+      fullScreen={compact}
       maxWidth="md"
-      PaperProps={{ sx: { borderRadius: "16px", maxWidth: SETTINGS_MAX } }}
+      PaperProps={{
+        sx: {
+          borderRadius: compact ? 0 : "16px",
+          maxWidth: compact ? "100%" : SETTINGS_MAX,
+        },
+      }}
     >
       <DialogTitle sx={{ display: "flex", alignItems: "center", gap: 1, px: 2 }}>
         {page !== "root" && (

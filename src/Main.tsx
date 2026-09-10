@@ -6,8 +6,6 @@ import {
   Button,
   CircularProgress,
   Link,
-  Menu,
-  MenuItem,
   Typography,
 } from "@mui/material";
 import { Home as HomeIcon, NoteAdd as NoteAddIcon } from "@mui/icons-material";
@@ -43,44 +41,18 @@ function PathBreadcrumb({
   path,
   onCwdChange,
   storageName,
-  mounts,
-  defaultId,
-  onPickStorage,
 }: {
   path: string;
   onCwdChange: (newCwd: string) => void;
   storageName: string;
-  mounts: Mount[];
-  defaultId: string;
-  onPickStorage: (id: string) => void;
 }) {
   const parts = path.replace(/\/$/, "").split("/").filter(Boolean);
-  const [anchor, setAnchor] = React.useState<null | HTMLElement>(null);
 
   return (
     <Breadcrumbs separator="›" sx={{ padding: 1 }}>
-      <Button
-        size="small"
-        onClick={(e) => setAnchor(e.currentTarget)}
-        sx={{ minWidth: 0, textTransform: "none" }}
-      >
-        {storageName || "R2"} ▾
-      </Button>
-      <Menu anchorEl={anchor} open={Boolean(anchor)} onClose={() => setAnchor(null)}>
-        {mounts.map((m) => (
-          <MenuItem
-            key={m.id}
-            selected={m.id === defaultId}
-            onClick={() => {
-              setAnchor(null);
-              onPickStorage(m.id);
-            }}
-          >
-            {m.id === defaultId ? "✓ " : "  "}
-            {m.name}
-          </MenuItem>
-        ))}
-      </Menu>
+      <Typography color="text.secondary" noWrap sx={{ maxWidth: 160 }}>
+        {storageName || "R2"}
+      </Typography>
       {parts.length > 0 && (
         <Button onClick={() => onCwdChange("")} sx={{ minWidth: 0, padding: 0 }}>
           <HomeIcon fontSize="small" />
@@ -235,19 +207,6 @@ function Main({
         path={cwd}
         onCwdChange={setCwd}
         storageName={mounts.find((m) => m.id === defaultId)?.name || ""}
-        mounts={mounts}
-        defaultId={defaultId}
-        onPickStorage={async (id) => {
-          await fetch("/api/storage/default", {
-            method: "PUT",
-            credentials: "include",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ id }),
-          });
-          setDefaultId(id);
-          setCwd("");
-          setLoading(true);
-        }}
       />
 
       {loading ? (

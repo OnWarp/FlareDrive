@@ -16,6 +16,10 @@ export const ROW_SX = {
   "& .MuiListItemIcon-root": { minWidth: 40 },
 };
 
+export function useCompactScreen() {
+  return useMediaQuery("(max-width:600px)");
+}
+
 export function Section({
   title,
   children,

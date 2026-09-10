@@ -29,7 +29,7 @@ import {
 } from "@mui/icons-material";
 import { ConfirmDialog } from "./dialogs";
 import { useT } from "./i18n";
-import { IconTip } from "./ui";
+import { IconTip, useCompactScreen } from "./ui";
 
 export type Mount = {
   id: string;
@@ -90,7 +90,14 @@ export default function StoragePanel({ onChanged }: { onChanged?: () => void }) 
             <ListItemIcon>
               <CloudIcon />
             </ListItemIcon>
-            <ListItemText primary={m.name} secondary={driverLabel(m.type)} />
+            <ListItemText
+              primary={m.name}
+              secondary={driverLabel(m.type)}
+              sx={{ minWidth: 0, mr: 1 }}
+              primaryTypographyProps={{ noWrap: true }}
+              secondaryTypographyProps={{ noWrap: true }}
+            />
+            <Box sx={{ display: "flex", alignItems: "center", flexShrink: 0 }}>
             {m.id === defaultId && <CheckIcon fontSize="small" color="primary" />}
             <IconTip
               title={t("nav.more")}
@@ -101,6 +108,7 @@ export default function StoragePanel({ onChanged }: { onChanged?: () => void }) 
             >
               <MoreHorizIcon />
             </IconTip>
+            </Box>
           </ListItemButton>
         ))}
         <ListItemButton onClick={() => setAddOpen(true)}>
@@ -179,6 +187,7 @@ function StorageForm({
   onSaved: () => void;
 }) {
   const t = useT();
+  const compact = useCompactScreen();
   const [name, setName] = useState("");
   const [endpoint, setEndpoint] = useState("");
   const [region, setRegion] = useState("auto");
@@ -209,8 +218,15 @@ function StorageForm({
       open={open}
       onClose={onClose}
       fullWidth
+      fullScreen={compact}
       maxWidth="sm"
-      PaperProps={{ sx: { borderRadius: "16px" } }}
+      PaperProps={{
+        sx: {
+          borderRadius: compact ? 0 : "16px",
+          display: "flex",
+          flexDirection: "column",
+        },
+      }}
     >
       <DialogTitle sx={{ display: "flex", alignItems: "center" }}>
         {mount ? t("storage.edit") : t("storage.add")}
@@ -220,7 +236,7 @@ function StorageForm({
           </IconTip>
         </Box>
       </DialogTitle>
-      <DialogContent>
+      <DialogContent sx={{ flex: 1 }}>
         <Stack spacing={2.5} sx={{ mt: 1 }}>
           <Group title={t("storage.group.basic")}>
             <TextField label={t("storage.name")} value={name} onChange={(e) => setName(e.target.value)} fullWidth />
@@ -268,7 +284,15 @@ function StorageForm({
           )}
         </Stack>
       </DialogContent>
-      <DialogActions sx={{ px: 3, pb: 2, justifyContent: "space-between" }}>
+      <DialogActions
+        sx={{
+          px: 2,
+          py: 1.5,
+          justifyContent: "space-between",
+          borderTop: compact ? "1px solid" : "none",
+          borderColor: "divider",
+        }}
+      >
         <Button
           variant="outlined"
           disabled={testing}
