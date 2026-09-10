@@ -12,7 +12,7 @@ import {
   MoreHoriz as MoreHorizIcon,
   Search as SearchIcon,
 } from "@mui/icons-material";
-import { LanguageMenu, useT } from "./i18n";
+import { useT } from "./i18n";
 
 function Header({
   search,
@@ -50,7 +50,6 @@ function Header({
           padding: "8px 16px",
         }}
       />
-      <LanguageMenu variant="icon" />
       <IconButton
         aria-label={t("nav.more")}
         color="inherit"

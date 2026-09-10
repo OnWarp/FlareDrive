@@ -57,12 +57,16 @@ export default function Login({ onLoggedIn }: { onLoggedIn: () => void }) {
         alignItems: "center",
         justifyContent: "center",
         px: 2,
+        position: "relative",
         background:
           theme.palette.mode === "dark"
             ? "radial-gradient(circle at top, #2a2118, #121212 55%)"
             : "radial-gradient(circle at top, #ffe8d2, #f6f6f6 55%)",
       }}
     >
+      <Box sx={{ position: "absolute", top: 16, right: 16 }}>
+        <LanguageMenu variant="text" />
+      </Box>
       <Stack
         component="form"
         onSubmit={submit}
@@ -76,13 +80,12 @@ export default function Login({ onLoggedIn }: { onLoggedIn: () => void }) {
           boxShadow: theme.shadows[8],
         }}
       >
-        <Stack direction="row" justifyContent="space-between" alignItems="center">
-          <Typography variant="h5" fontWeight={700}>
-            {t("app.name")}
-          </Typography>
-          <LanguageMenu variant="text" />
-        </Stack>
-        <Typography color="text.secondary">{t("app.tagline")}</Typography>
+        <Typography variant="h5" fontWeight={700} textAlign="center">
+          {t("app.name")}
+        </Typography>
+        <Typography color="text.secondary" textAlign="center">
+          {t("app.tagline")}
+        </Typography>
         {error && <Alert severity="error">{t("login.failed")}</Alert>}
         <TextField
           autoComplete="username"
