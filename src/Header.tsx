@@ -1,18 +1,31 @@
-import { IconButton, InputBase, Menu, MenuItem, Toolbar } from "@mui/material";
+import {
+  IconButton,
+  InputAdornment,
+  InputBase,
+  Menu,
+  MenuItem,
+  Divider,
+  Toolbar,
+} from "@mui/material";
 import { useState } from "react";
-import { MoreHoriz as MoreHorizIcon } from "@mui/icons-material";
-import { LanguageToggle, useT } from "./i18n";
+import {
+  MoreHoriz as MoreHorizIcon,
+  Search as SearchIcon,
+} from "@mui/icons-material";
+import { LanguageMenu, useT } from "./i18n";
 
 function Header({
   search,
   onSearchChange,
   setShowProgressDialog,
   onLogout,
+  onSettings,
 }: {
   search: string;
   onSearchChange: (newSearch: string) => void;
   setShowProgressDialog: (show: boolean) => void;
   onLogout: () => void;
+  onSettings: () => void;
 }) {
   const t = useT();
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
@@ -25,6 +38,11 @@ function Header({
         placeholder={t("nav.search")}
         value={search}
         onChange={(e) => onSearchChange(e.target.value)}
+        startAdornment={
+          <InputAdornment position="start" sx={{ mr: 0.5 }}>
+            <SearchIcon fontSize="small" color="action" />
+          </InputAdornment>
+        }
         sx={{
           backgroundColor: (theme) =>
             theme.palette.mode === "dark" ? "rgba(255,255,255,0.08)" : "whitesmoke",
@@ -32,7 +50,7 @@ function Header({
           padding: "8px 16px",
         }}
       />
-      <LanguageToggle />
+      <LanguageMenu variant="icon" />
       <IconButton
         aria-label={t("nav.more")}
         color="inherit"
@@ -45,8 +63,6 @@ function Header({
         open={Boolean(anchorEl)}
         onClose={() => setAnchorEl(null)}
       >
-        <MenuItem disabled>{t("nav.viewAs")}</MenuItem>
-        <MenuItem disabled>{t("nav.sortBy")}</MenuItem>
         <MenuItem
           onClick={() => {
             setAnchorEl(null);
@@ -55,6 +71,15 @@ function Header({
         >
           {t("nav.progress")}
         </MenuItem>
+        <MenuItem
+          onClick={() => {
+            setAnchorEl(null);
+            onSettings();
+          }}
+        >
+          {t("nav.settings")}
+        </MenuItem>
+        <Divider />
         <MenuItem
           onClick={() => {
             setAnchorEl(null);

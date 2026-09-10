@@ -5,7 +5,19 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import { Button } from "@mui/material";
+import {
+  Button,
+  IconButton,
+  ListItemIcon,
+  ListItemText,
+  Menu,
+  MenuItem,
+} from "@mui/material";
+import {
+  Check as CheckIcon,
+  ExpandMore as ExpandMoreIcon,
+  Language as LanguageIcon,
+} from "@mui/icons-material";
 import enUS from "./locales/en-US";
 import zhCN from "./locales/zh-CN";
 import { STORAGE_KEY, type Locale } from "./types";
@@ -65,28 +77,63 @@ export function useLocale() {
   return { locale: ctx.locale, setLocale: ctx.setLocale };
 }
 
-export function LanguageToggle() {
+const OPTIONS: { locale: Locale; labelKey: "lang.zh" | "lang.en" }[] = [
+  { locale: "zh-CN", labelKey: "lang.zh" },
+  { locale: "en-US", labelKey: "lang.en" },
+];
+
+export function LanguageMenu({
+  variant = "icon",
+}: {
+  variant?: "icon" | "text";
+}) {
   const { locale, setLocale } = useLocale();
   const t = useT();
-  const next: Locale = locale === "en-US" ? "zh-CN" : "en-US";
+  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+  const current = OPTIONS.find((o) => o.locale === locale)!;
+
   return (
-    <Button
-      size="small"
-      variant="outlined"
-      onClick={() => setLocale(next)}
-      sx={{
-        minWidth: 36,
-        height: 36,
-        px: { xs: 1, sm: 1.5 },
-        borderRadius: "10px",
-      }}
-    >
-      <span className="lang-short">
-        {locale === "en-US" ? t("lang.zhShort") : t("lang.enShort")}
-      </span>
-      <span className="lang-full">
-        {locale === "en-US" ? t("lang.zh") : t("lang.en")}
-      </span>
-    </Button>
+    <>
+      {variant === "icon" ? (
+        <IconButton
+          aria-label={t("nav.language")}
+          color="inherit"
+          onClick={(e) => setAnchorEl(e.currentTarget)}
+        >
+          <LanguageIcon />
+        </IconButton>
+      ) : (
+        <Button
+          color="inherit"
+          size="small"
+          endIcon={<ExpandMoreIcon />}
+          onClick={(e) => setAnchorEl(e.currentTarget)}
+          sx={{ minWidth: 0, textTransform: "none" }}
+        >
+          {t(current.labelKey)}
+        </Button>
+      )}
+      <Menu
+        anchorEl={anchorEl}
+        open={Boolean(anchorEl)}
+        onClose={() => setAnchorEl(null)}
+      >
+        {OPTIONS.map((opt) => (
+          <MenuItem
+            key={opt.locale}
+            selected={opt.locale === locale}
+            onClick={() => {
+              setLocale(opt.locale);
+              setAnchorEl(null);
+            }}
+          >
+            <ListItemIcon>
+              {opt.locale === locale ? <CheckIcon fontSize="small" /> : null}
+            </ListItemIcon>
+            <ListItemText>{t(opt.labelKey)}</ListItemText>
+          </MenuItem>
+        ))}
+      </Menu>
+    </>
   );
 }

@@ -1,5 +1,3 @@
-import type { Locale } from "../types";
-
 const zhCN: Record<string, string> = {
   "app.name": "FlareDrive",
   "app.tagline": "你的个人云盘",
@@ -13,8 +11,8 @@ const zhCN: Record<string, string> = {
   "nav.more": "更多",
   "nav.progress": "传输进度",
   "nav.logout": "退出登录",
-  "nav.viewAs": "视图",
-  "nav.sortBy": "排序",
+  "nav.settings": "设置",
+  "nav.language": "语言",
   "files.empty": "没有文件或文件夹",
   "files.upload": "上传",
   "files.camera": "拍照",
@@ -24,10 +22,13 @@ const zhCN: Record<string, string> = {
   "files.invalidFolderName": "文件夹名称无效",
   "files.textPad": "文本便签",
   "files.rename": "重命名",
-  "files.renameTo": "重命名为：",
+  "files.renameTo": "新名称",
   "files.share": "分享",
   "files.delete": "删除",
   "files.deleteConfirm": "永久删除以下文件？",
+  "common.cancel": "取消",
+  "common.ok": "确定",
+  "common.save": "保存",
   "progress.title": "传输进度",
   "progress.downloads": "下载",
   "progress.uploads": "上传",
@@ -37,9 +38,22 @@ const zhCN: Record<string, string> = {
   "textpad.save": "保存并上传",
   "lang.zh": "中文",
   "lang.en": "English",
-  "lang.zhShort": "中",
-  "lang.enShort": "EN",
+  "settings.title": "设置",
+  "settings.appearance": "外观",
+  "settings.theme": "主题",
+  "settings.theme.system": "跟随系统",
+  "settings.theme.light": "浅色",
+  "settings.theme.dark": "深色",
+  "settings.language": "语言",
+  "settings.storage": "存储",
+  "settings.storage.r2": "Cloudflare R2（默认）",
+  "settings.storage.hint": "S3、OneDrive 挂载会放在这里。",
+  "settings.webdav": "WebDAV",
+  "settings.webdav.endpoint": "地址",
+  "settings.webdav.legacy": "兼容路径",
+  "settings.webdav.hint": "客户端用 Basic Auth，账号与网页登录相同。",
+  "settings.about": "关于",
+  "settings.about.blurb": "跑在 Cloudflare Workers + R2 上的轻量个人云盘。",
 };
 
-export default zhCN as Record<keyof typeof import("./en-US").default | string, string>;
-export type _LocaleCheck = Locale;
+export default zhCN;

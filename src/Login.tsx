@@ -15,7 +15,7 @@ import {
   Visibility as VisibilityIcon,
   VisibilityOff as VisibilityOffIcon,
 } from "@mui/icons-material";
-import { LanguageToggle, useT } from "./i18n";
+import { LanguageMenu, useT } from "./i18n";
 
 export default function Login({ onLoggedIn }: { onLoggedIn: () => void }) {
   const t = useT();
@@ -80,7 +80,7 @@ export default function Login({ onLoggedIn }: { onLoggedIn: () => void }) {
           <Typography variant="h5" fontWeight={700}>
             {t("app.name")}
           </Typography>
-          <LanguageToggle />
+          <LanguageMenu variant="text" />
         </Stack>
         <Typography color="text.secondary">{t("app.tagline")}</Typography>
         {error && <Alert severity="error">{t("login.failed")}</Alert>}

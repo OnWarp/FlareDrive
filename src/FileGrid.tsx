@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useRef } from "react";
 import {
   Box,
   Grid,
@@ -29,6 +29,101 @@ export function isDirectory(file: FileItem) {
   return file.httpMetadata?.contentType === "application/x-directory";
 }
 
+function FileRow({
+  file,
+  multiSelected,
+  onCwdChange,
+  onMultiSelect,
+}: {
+  file: FileItem;
+  multiSelected: string[] | null;
+  onCwdChange: (newCwd: string) => void;
+  onMultiSelect: (key: string) => void;
+}) {
+  const timer = useRef<number | null>(null);
+  const longPress = useRef(false);
+
+  const clearTimer = () => {
+    if (timer.current != null) {
+      window.clearTimeout(timer.current);
+      timer.current = null;
+    }
+  };
+
+  const open = () => {
+    if (isDirectory(file)) onCwdChange(file.key + "/");
+    else
+      window.open(
+        `/dav/${encodeKey(file.key)}`,
+        "_blank",
+        "noopener,noreferrer"
+      );
+  };
+
+  return (
+    <ListItemButton
+      selected={multiSelected?.includes(file.key)}
+      onClick={() => {
+        if (longPress.current) {
+          longPress.current = false;
+          return;
+        }
+        if (multiSelected !== null) onMultiSelect(file.key);
+        else open();
+      }}
+      onContextMenu={(e) => {
+        e.preventDefault();
+        onMultiSelect(file.key);
+      }}
+      onTouchStart={() => {
+        longPress.current = false;
+        timer.current = window.setTimeout(() => {
+          longPress.current = true;
+          onMultiSelect(file.key);
+        }, 500);
+      }}
+      onTouchEnd={clearTimer}
+      onTouchMove={clearTimer}
+      onTouchCancel={clearTimer}
+      sx={{ userSelect: "none", WebkitTouchCallout: "none" }}
+    >
+      <ListItemIcon>
+        {file.customMetadata?.thumbnail ? (
+          <img
+            src={`/dav/_$flaredrive$/thumbnails/${file.customMetadata.thumbnail}.png`}
+            alt={file.key}
+            style={{ width: 36, height: 36, objectFit: "cover" }}
+          />
+        ) : (
+          <MimeIcon contentType={file.httpMetadata.contentType} />
+        )}
+      </ListItemIcon>
+      <ListItemText
+        primary={extractFilename(file.key)}
+        primaryTypographyProps={{
+          whiteSpace: "nowrap",
+          overflow: "hidden",
+          textOverflow: "ellipsis",
+        }}
+        secondary={
+          <React.Fragment>
+            <Box
+              sx={{
+                display: "inline-block",
+                minWidth: "160px",
+                marginRight: 1,
+              }}
+            >
+              {new Date(file.uploaded).toLocaleString()}
+            </Box>
+            {!isDirectory(file) && humanReadableSize(file.size)}
+          </React.Fragment>
+        }
+      />
+    </ListItemButton>
+  );
+}
+
 function FileGrid({
   files,
   onCwdChange,
@@ -48,60 +143,12 @@ function FileGrid({
     <Grid container sx={{ paddingBottom: "48px" }}>
       {files.map((file) => (
         <Grid item key={file.key} xs={12} sm={6} md={4} lg={3} xl={2}>
-          <ListItemButton
-            selected={multiSelected?.includes(file.key)}
-            onClick={() => {
-              if (multiSelected !== null) {
-                onMultiSelect(file.key);
-              } else if (isDirectory(file)) {
-                onCwdChange(file.key + "/");
-              } else
-                window.open(
-                  `/dav/${encodeKey(file.key)}`,
-                  "_blank",
-                  "noopener,noreferrer"
-                );
-            }}
-            onContextMenu={(e) => {
-              e.preventDefault();
-              onMultiSelect(file.key);
-            }}
-            sx={{ userSelect: "none" }}
-          >
-            <ListItemIcon>
-              {file.customMetadata?.thumbnail ? (
-                <img
-                  src={`/dav/_$flaredrive$/thumbnails/${file.customMetadata.thumbnail}.png`}
-                  alt={file.key}
-                  style={{ width: 36, height: 36, objectFit: "cover" }}
-                />
-              ) : (
-                <MimeIcon contentType={file.httpMetadata.contentType} />
-              )}
-            </ListItemIcon>
-            <ListItemText
-              primary={extractFilename(file.key)}
-              primaryTypographyProps={{
-                whiteSpace: "nowrap",
-                overflow: "hidden",
-                textOverflow: "ellipsis",
-              }}
-              secondary={
-                <React.Fragment>
-                  <Box
-                    sx={{
-                      display: "inline-block",
-                      minWidth: "160px",
-                      marginRight: 1,
-                    }}
-                  >
-                    {new Date(file.uploaded).toLocaleString()}
-                  </Box>
-                  {!isDirectory(file) && humanReadableSize(file.size)}
-                </React.Fragment>
-              }
-            />
-          </ListItemButton>
+          <FileRow
+            file={file}
+            multiSelected={multiSelected}
+            onCwdChange={onCwdChange}
+            onMultiSelect={onMultiSelect}
+          />
         </Grid>
       ))}
     </Grid>

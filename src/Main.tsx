@@ -16,6 +16,7 @@ import UploadDrawer, { UploadFab } from "./UploadDrawer";
 import TextPadDrawer from "./TextPadDrawer";
 import { copyPaste, fetchPath } from "./app/transfer";
 import { useTransferQueue, useUploadEnqueue } from "./app/transferQueue";
+import { ConfirmDialog, PromptDialog } from "./dialogs";
 import { useT } from "./i18n";
 
 // Centered helper
@@ -125,6 +126,8 @@ function Main({
   const [showUploadDrawer, setShowUploadDrawer] = useState(false);
   const [showTextPadDrawer, setShowTextPadDrawer] = useState(false);
   const [lastUploadKey, setLastUploadKey] = useState<string | null>(null);
+  const [renameOpen, setRenameOpen] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
 
   const transferQueue = useTransferQueue();
   const uploadEnqueue = useUploadEnqueue();
@@ -247,26 +250,13 @@ function Main({
           a.download = multiSelected[0].split("/").pop()!;
           a.click();
         }}
-        onRename={async () => {
+        onRename={() => {
           if (multiSelected?.length !== 1) return;
-          const newName = window.prompt(t("files.renameTo"));
-          if (!newName) return;
-          await copyPaste(multiSelected[0], cwd + newName, true);
-          fetchFiles();
+          setRenameOpen(true);
         }}
-        onDelete={async () => {
+        onDelete={() => {
           if (!multiSelected?.length) return;
-          const filenames = multiSelected
-            .map((key) => key.replace(/\/$/, "").split("/").pop())
-            .join("\n");
-          const confirmMessage = t("files.deleteConfirm");
-          if (!window.confirm(`${confirmMessage}\n${filenames}`)) return;
-          for (const key of multiSelected)
-            await fetch(`/dav/${encodeKey(key)}`, {
-              method: "DELETE",
-              credentials: "include",
-            });
-          fetchFiles();
+          setDeleteOpen(true);
         }}
         onShare={() => {
           if (multiSelected?.length !== 1) return;
@@ -275,6 +265,42 @@ function Main({
             window.location.href
           );
           navigator.share({ url: url.toString() });
+        }}
+      />
+      <PromptDialog
+        open={renameOpen}
+        title={t("files.rename")}
+        label={t("files.renameTo")}
+        initial={
+          multiSelected?.[0]?.replace(/\/$/, "").split("/").pop() ?? ""
+        }
+        onClose={() => setRenameOpen(false)}
+        onSubmit={async (newName) => {
+          if (multiSelected?.length !== 1) return;
+          setRenameOpen(false);
+          await copyPaste(multiSelected[0], cwd + newName, true);
+          fetchFiles();
+        }}
+      />
+      <ConfirmDialog
+        open={deleteOpen}
+        title={t("files.delete")}
+        body={`${t("files.deleteConfirm")}\n${
+          multiSelected
+            ?.map((key) => key.replace(/\/$/, "").split("/").pop())
+            .join("\n") ?? ""
+        }`}
+        confirmLabel={t("files.delete")}
+        onClose={() => setDeleteOpen(false)}
+        onConfirm={async () => {
+          if (!multiSelected?.length) return;
+          setDeleteOpen(false);
+          for (const key of multiSelected)
+            await fetch(`/dav/${encodeKey(key)}`, {
+              method: "DELETE",
+              credentials: "include",
+            });
+          fetchFiles();
         }}
       />
     </>

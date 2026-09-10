@@ -1,37 +1,23 @@
-import { ThemeProvider } from "@emotion/react";
-import {
-  createTheme,
-  CssBaseline,
-  GlobalStyles,
-  Snackbar,
-  Stack,
-  useMediaQuery,
-} from "@mui/material";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { CssBaseline, GlobalStyles, Snackbar, Stack } from "@mui/material";
+import { useCallback, useEffect, useState } from "react";
 
 import Header from "./Header";
 import Login from "./Login";
 import Main from "./Main";
 import ProgressDialog from "./ProgressDialog";
+import Settings from "./Settings";
 import { TransferQueueProvider } from "./app/transferQueue";
+import { AppearanceProvider } from "./appearance";
 import { I18nProvider } from "./i18n";
 
 const globalStyles = (
-  <GlobalStyles
-    styles={{
-      "html, body, #root": { height: "100%" },
-      ".lang-full": { display: "none" },
-      "@media (min-width: 600px)": {
-        ".lang-short": { display: "none" },
-        ".lang-full": { display: "inline" },
-      },
-    }}
-  />
+  <GlobalStyles styles={{ "html, body, #root": { height: "100%" } }} />
 );
 
 function Shell() {
   const [search, setSearch] = useState("");
   const [showProgressDialog, setShowProgressDialog] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
   const [error, setError] = useState<Error | null>(null);
   const [auth, setAuth] = useState<"loading" | "anon" | "ok">("loading");
 
@@ -55,6 +41,7 @@ function Shell() {
           search={search}
           onSearchChange={(newSearch: string) => setSearch(newSearch)}
           setShowProgressDialog={setShowProgressDialog}
+          onSettings={() => setShowSettings(true)}
           onLogout={() => {
             fetch("/api/auth/logout", {
               method: "POST",
@@ -74,36 +61,19 @@ function Shell() {
         open={showProgressDialog}
         onClose={() => setShowProgressDialog(false)}
       />
+      <Settings open={showSettings} onClose={() => setShowSettings(false)} />
     </TransferQueueProvider>
-  );
-}
-
-function ThemedApp() {
-  const prefersDark = useMediaQuery("(prefers-color-scheme: dark)");
-  const theme = useMemo(
-    () =>
-      createTheme({
-        palette: {
-          mode: prefersDark ? "dark" : "light",
-          primary: { main: "#f38020" },
-        },
-        shape: { borderRadius: 12 },
-      }),
-    [prefersDark]
-  );
-  return (
-    <ThemeProvider theme={theme}>
-      <CssBaseline />
-      {globalStyles}
-      <Shell />
-    </ThemeProvider>
   );
 }
 
 function App() {
   return (
     <I18nProvider>
-      <ThemedApp />
+      <AppearanceProvider>
+        <CssBaseline />
+        {globalStyles}
+        <Shell />
+      </AppearanceProvider>
     </I18nProvider>
   );
 }

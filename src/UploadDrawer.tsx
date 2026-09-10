@@ -1,6 +1,6 @@
-import React, { forwardRef, useCallback, useMemo } from "react";
+import React, { forwardRef, useCallback, useMemo, useState } from "react";
 
-import { Button, Card, Drawer, Fab, Grid, Typography } from "@mui/material";
+import { Button, Card, Drawer, Fab, Grid, Snackbar, Typography } from "@mui/material";
 import {
   Camera as CameraIcon,
   CreateNewFolder as CreateNewFolderIcon,
@@ -9,6 +9,7 @@ import {
 } from "@mui/icons-material";
 import { createFolder } from "./app/transfer";
 import { useUploadEnqueue } from "./app/transferQueue";
+import { PromptDialog } from "./dialogs";
 import { useT } from "./i18n";
 
 function IconCaptionButton({
@@ -69,6 +70,8 @@ function UploadDrawer({
 }) {
   const uploadEnqueue = useUploadEnqueue();
   const t = useT();
+  const [folderOpen, setFolderOpen] = useState(false);
+  const [folderError, setFolderError] = useState(false);
 
   const handleUpload = useCallback(
     (action: string) => () => {
@@ -104,6 +107,7 @@ function UploadDrawer({
   const uploadFile = useMemo(() => handleUpload("file"), [handleUpload]);
 
   return (
+    <>
     <Drawer
       anchor="bottom"
       open={open}
@@ -137,22 +141,37 @@ function UploadDrawer({
             <IconCaptionButton
               icon={<CreateNewFolderIcon fontSize="large" />}
               caption={t("files.createFolder")}
-              onClick={async () => {
+              onClick={() => {
                 setOpen(false);
-                const folderName = window.prompt(t("files.folderName"));
-                if (!folderName) return;
-                try {
-                  await createFolder(cwd, folderName);
-                  onUpload();
-                } catch {
-                  window.alert(t("files.invalidFolderName"));
-                }
+                setFolderOpen(true);
               }}
             />
           </Grid>
         </Grid>
       </Card>
     </Drawer>
+    <PromptDialog
+      open={folderOpen}
+      title={t("files.createFolder")}
+      label={t("files.folderName")}
+      onClose={() => setFolderOpen(false)}
+      onSubmit={async (folderName) => {
+        setFolderOpen(false);
+        try {
+          await createFolder(cwd, folderName);
+          onUpload();
+        } catch {
+          setFolderError(true);
+        }
+      }}
+    />
+    <Snackbar
+      open={folderError}
+      autoHideDuration={4000}
+      onClose={() => setFolderError(false)}
+      message={t("files.invalidFolderName")}
+    />
+    </>
   );
 }
 
