@@ -7,6 +7,7 @@ import {
   ListItemText,
 } from "@mui/material";
 import MimeIcon from "./MimeIcon";
+import { davPath } from "./davStorage";
 import { humanReadableSize } from "./app/utils";
 
 export interface FileItem {
@@ -54,7 +55,7 @@ function FileRow({
     if (isDirectory(file)) onCwdChange(file.key + "/");
     else
       window.open(
-        `/dav/${encodeKey(file.key)}`,
+        davPath(encodeKey(file.key)),
         "_blank",
         "noopener,noreferrer"
       );
@@ -90,7 +91,7 @@ function FileRow({
       <ListItemIcon>
         {file.customMetadata?.thumbnail ? (
           <img
-            src={`/dav/_$flaredrive$/thumbnails/${file.customMetadata.thumbnail}.png`}
+            src={davPath(`_$flaredrive$/thumbnails/${file.customMetadata.thumbnail}.png`)}
             alt={file.key}
             style={{ width: 36, height: 36, objectFit: "cover" }}
           />

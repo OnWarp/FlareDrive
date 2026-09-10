@@ -52,7 +52,11 @@ async function handleWebdav(request: Request, env: Env): Promise<Response> {
   if (!stripped) return notFound();
 
   const mgr = await StorageManager.load(env);
-  const store = mgr.defaultProvider();
+  const sid =
+    request.headers.get("X-FlareDrive-Storage") ||
+    new URL(request.url).searchParams.get("storage") ||
+    "";
+  const store = sid ? mgr.provider(sid) : mgr.defaultProvider();
 
   const handler =
     HANDLERS[request.method] ??

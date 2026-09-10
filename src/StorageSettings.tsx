@@ -15,6 +15,7 @@ import {
   ListItemText,
   Menu,
   MenuItem,
+  Divider,
   Stack,
   TextField,
   Typography,
@@ -77,16 +78,7 @@ export default function StoragePanel({ onChanged }: { onChanged?: () => void }) 
     <>
       <List disablePadding>
         {mounts.map((m) => (
-          <ListItemButton
-            key={m.id}
-            selected={m.id === defaultId}
-            onClick={() =>
-              api("/api/storage/default", {
-                method: "PUT",
-                body: JSON.stringify({ id: m.id }),
-              }).then(reload)
-            }
-          >
+          <ListItemButton key={m.id} selected={m.id === defaultId}>
             <ListItemIcon>
               <CloudIcon />
             </ListItemIcon>
@@ -117,6 +109,18 @@ export default function StoragePanel({ onChanged }: { onChanged?: () => void }) 
       </List>
       <Menu anchorEl={menu?.el} open={Boolean(menu)} onClose={() => setMenu(null)}>
         <MenuItem
+          onClick={() => {
+            if (menu)
+              api("/api/storage/default", {
+                method: "PUT",
+                body: JSON.stringify({ id: menu.mount.id }),
+              }).then(reload);
+            setMenu(null);
+          }}
+        >
+          {t("storage.setDefault")}
+        </MenuItem>
+        <MenuItem
           disabled={menu?.mount.builtin}
           onClick={() => {
             if (menu) setEdit(menu.mount);
@@ -125,6 +129,7 @@ export default function StoragePanel({ onChanged }: { onChanged?: () => void }) 
         >
           {t("storage.edit")}
         </MenuItem>
+        <Divider />
         <MenuItem
           disabled={menu?.mount.builtin}
           sx={{ color: "error.main" }}

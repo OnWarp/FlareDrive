@@ -1,20 +1,20 @@
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useState } from "react";
 import {
   Box,
-  Button,
   Dialog,
   DialogTitle,
   List,
   ListItemButton,
   ListItemIcon,
   ListItemText,
+  Menu,
+  MenuItem,
   Snackbar,
 } from "@mui/material";
 import {
-  ArrowBack as ArrowBackIcon,
   Check as CheckIcon,
-  ChevronRight as ChevronRightIcon,
   Close as CloseIcon,
+  ContentCopy as ContentCopyIcon,
 } from "@mui/icons-material";
 import { useAppearance, type Appearance } from "./appearance";
 import { useLocale, useT } from "./i18n";
@@ -24,8 +24,6 @@ import { IconTip, SETTINGS_MAX, Section, useCompactScreen } from "./ui";
 
 const VERSION = "0.2.0";
 const GITHUB = "https://github.com/OnWarp/FlareDrive";
-
-type Page = "root" | "language" | "theme";
 
 export default function Settings({
   open,
@@ -38,21 +36,11 @@ export default function Settings({
   const t = useT();
   const { appearance, setAppearance } = useAppearance();
   const { locale, setLocale } = useLocale();
-  const [page, setPage] = useState<Page>("root");
   const [copied, setCopied] = useState(false);
+  const [langEl, setLangEl] = useState<null | HTMLElement>(null);
+  const [themeEl, setThemeEl] = useState<null | HTMLElement>(null);
   const origin = typeof window === "undefined" ? "" : window.location.origin;
   const davUrl = `${origin}/dav`;
-
-  useEffect(() => {
-    if (open) setPage("root");
-  }, [open]);
-
-  const title =
-    page === "language"
-      ? t("settings.language")
-      : page === "theme"
-        ? t("settings.themeLabel")
-        : t("settings.title");
 
   const themeLabel =
     appearance === "light"
@@ -71,17 +59,13 @@ export default function Settings({
       PaperProps={{
         sx: {
           borderRadius: compact ? 0 : "16px",
+          overflow: "hidden",
           maxWidth: compact ? "100%" : SETTINGS_MAX,
         },
       }}
     >
       <DialogTitle sx={{ display: "flex", alignItems: "center", gap: 1, px: 2 }}>
-        {page !== "root" && (
-          <IconTip title={t("common.cancel")} onClick={() => setPage("root")} edge="start">
-            <ArrowBackIcon />
-          </IconTip>
-        )}
-        {title}
+        {t("settings.title")}
         <Box sx={{ ml: "auto" }}>
           <IconTip title={t("common.cancel")} onClick={onClose}>
             <CloseIcon />
@@ -89,131 +73,118 @@ export default function Settings({
         </Box>
       </DialogTitle>
 
-      {page === "root" && (
-        <Box sx={{ pb: 1 }}>
-          <Section title={t("settings.appearance")}>
-            <List disablePadding>
-              <ListItemButton onClick={() => setPage("language")}>
-                <ListItemText
-                  primary={t("settings.language")}
-                  secondary={locale === "zh-CN" ? t("lang.zh") : t("lang.en")}
-                />
-                <ChevronRightIcon color="action" />
-              </ListItemButton>
-              <ListItemButton onClick={() => setPage("theme")}>
-                <ListItemText
-                  primary={t("settings.themeLabel")}
-                  secondary={themeLabel}
-                />
-                <ChevronRightIcon color="action" />
-              </ListItemButton>
-            </List>
-          </Section>
-
-          <Section title={t("settings.storage")}>
-            <StoragePanel />
-          </Section>
-
-          <Section title={t("settings.webdav")}>
-            <List disablePadding>
-              <ListItemButton>
-                <ListItemText
-                  primary={t("settings.webdav.endpoint")}
-                  secondary={davUrl}
-                  secondaryTypographyProps={{ sx: { wordBreak: "break-all" } }}
-                />
-                <Button
-                  size="small"
-                  onClick={async (e) => {
-                    e.stopPropagation();
-                    await navigator.clipboard.writeText(davUrl);
-                    setCopied(true);
-                  }}
-                >
-                  {t("settings.webdav.copy")}
-                </Button>
-              </ListItemButton>
-            </List>
-          </Section>
-
-          <Section title={t("settings.about")}>
-            <List disablePadding>
-              <ListItemButton disabled>
-                <ListItemText
-                  primary={t("app.name")}
-                  secondary={t("settings.about.version", { version: VERSION })}
-                />
-              </ListItemButton>
-              <ListItemButton
-                component="a"
-                href={GITHUB}
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                <ListItemText primary={t("settings.about.github")} secondary={GITHUB} />
-                <ChevronRightIcon color="action" />
-              </ListItemButton>
-            </List>
-          </Section>
-        </Box>
-      )}
-
-      {page === "language" && (
-        <Box sx={{ maxWidth: SETTINGS_MAX, mx: "auto", width: "100%", pb: 2 }}>
+      <Box sx={{ pb: 1, overflow: "auto" }}>
+        <Section title={t("settings.appearance")}>
           <List disablePadding>
-            {(["zh-CN", "en-US"] as Locale[]).map((code) => (
-              <ListItemButton
-                key={code}
-                selected={locale === code}
-                onClick={() => setLocale(code)}
-                sx={{ minHeight: 56, px: 2 }}
-              >
-                <ListItemIcon sx={{ minWidth: 40 }}>
-                  <CheckIcon
-                    fontSize="small"
-                    sx={{ visibility: locale === code ? "visible" : "hidden" }}
-                  />
-                </ListItemIcon>
-                <ListItemText>
-                  {code === "zh-CN" ? t("lang.zh") : t("lang.en")}
-                </ListItemText>
-              </ListItemButton>
-            ))}
+            <ListItemButton onClick={(e) => setLangEl(e.currentTarget)}>
+              <ListItemText
+                primary={t("settings.language")}
+                secondary={locale === "zh-CN" ? t("lang.zh") : t("lang.en")}
+              />
+            </ListItemButton>
+            <ListItemButton onClick={(e) => setThemeEl(e.currentTarget)}>
+              <ListItemText
+                primary={t("settings.themeLabel")}
+                secondary={themeLabel}
+              />
+            </ListItemButton>
           </List>
-        </Box>
-      )}
+        </Section>
 
-      {page === "theme" && (
-        <Box sx={{ maxWidth: SETTINGS_MAX, mx: "auto", width: "100%", pb: 2 }}>
+        <Section title={t("settings.storage")}>
+          <StoragePanel />
+        </Section>
+
+        <Section title={t("settings.webdav")}>
           <List disablePadding>
-            {(
-              [
-                ["system", "settings.theme.system"],
-                ["light", "settings.theme.light"],
-                ["dark", "settings.theme.dark"],
-              ] as const
-            ).map(([value, key]) => (
-              <ListItemButton
-                key={value}
-                selected={appearance === value}
-                onClick={() => setAppearance(value as Appearance)}
-                sx={{ minHeight: 56, px: 2 }}
+            <ListItemButton>
+              <ListItemText
+                primary={t("settings.webdav.endpoint")}
+                secondary={davUrl}
+                secondaryTypographyProps={{ sx: { wordBreak: "break-all" } }}
+              />
+              <IconTip
+                title={t("settings.webdav.copy")}
+                onClick={async (e) => {
+                  e.stopPropagation();
+                  await navigator.clipboard.writeText(davUrl);
+                  setCopied(true);
+                }}
               >
-                <ListItemIcon sx={{ minWidth: 40 }}>
-                  <CheckIcon
-                    fontSize="small"
-                    sx={{
-                      visibility: appearance === value ? "visible" : "hidden",
-                    }}
-                  />
-                </ListItemIcon>
-                <ListItemText>{t(key)}</ListItemText>
-              </ListItemButton>
-            ))}
+                <ContentCopyIcon fontSize="small" />
+              </IconTip>
+            </ListItemButton>
           </List>
-        </Box>
-      )}
+        </Section>
 
+        <Section title={t("settings.about")}>
+          <List disablePadding>
+            <ListItemButton disabled>
+              <ListItemText
+                primary={t("app.name")}
+                secondary={t("settings.about.version", { version: VERSION })}
+              />
+            </ListItemButton>
+            <ListItemButton
+              component="a"
+              href={GITHUB}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              <ListItemText primary={t("settings.about.github")} secondary={GITHUB} />
+            </ListItemButton>
+          </List>
+        </Section>
+      </Box>
+
+      <Menu anchorEl={langEl} open={Boolean(langEl)} onClose={() => setLangEl(null)}>
+        {(["zh-CN", "en-US"] as Locale[]).map((code) => (
+          <MenuItem
+            key={code}
+            selected={locale === code}
+            onClick={() => {
+              setLocale(code);
+              setLangEl(null);
+            }}
+          >
+            <ListItemIcon>
+              <CheckIcon
+                fontSize="small"
+                sx={{ visibility: locale === code ? "visible" : "hidden" }}
+              />
+            </ListItemIcon>
+            {code === "zh-CN" ? t("lang.zh") : t("lang.en")}
+          </MenuItem>
+        ))}
+      </Menu>
+      <Menu anchorEl={themeEl} open={Boolean(themeEl)} onClose={() => setThemeEl(null)}>
+        {(
+          [
+            ["system", "settings.theme.system"],
+            ["light", "settings.theme.light"],
+            ["dark", "settings.theme.dark"],
+          ] as const
+        ).map(([value, key]) => (
+          <MenuItem
+            key={value}
+            selected={appearance === value}
+            onClick={() => {
+              setAppearance(value as Appearance);
+              setThemeEl(null);
+            }}
+          >
+            <ListItemIcon>
+              <CheckIcon
+                fontSize="small"
+                sx={{
+                  visibility: appearance === value ? "visible" : "hidden",
+                }}
+              />
+            </ListItemIcon>
+            {t(key)}
+          </MenuItem>
+        ))}
+      </Menu>
       <Snackbar
         open={copied}
         autoHideDuration={2000}

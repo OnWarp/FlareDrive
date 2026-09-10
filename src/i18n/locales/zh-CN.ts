@@ -64,6 +64,7 @@ const zhCN: Record<string, string> = {
   "storage.default": "默认存储",
   "storage.spaces": "存储空间",
   "storage.add": "添加存储",
+  "storage.setDefault": "设为默认",
   "storage.edit": "编辑",
   "storage.delete": "删除",
   "storage.type": "存储类型",

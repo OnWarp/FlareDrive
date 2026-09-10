@@ -6,9 +6,12 @@ import {
   Button,
   CircularProgress,
   Link,
+  Menu,
+  MenuItem,
+  ListItemIcon,
   Typography,
 } from "@mui/material";
-import { Home as HomeIcon, NoteAdd as NoteAddIcon } from "@mui/icons-material";
+import { Check as CheckIcon, Home as HomeIcon, NoteAdd as NoteAddIcon } from "@mui/icons-material";
 
 import FileGrid, { encodeKey, FileItem, isDirectory } from "./FileGrid";
 import MultiSelectToolbar from "./MultiSelectToolbar";
@@ -18,6 +21,7 @@ import { copyPaste, fetchPath } from "./app/transfer";
 import { useTransferQueue, useUploadEnqueue } from "./app/transferQueue";
 import { ConfirmDialog, PromptDialog } from "./dialogs";
 import { useT } from "./i18n";
+import { davPath, getCurrentStorageId, setCurrentStorageId, withDav } from "./davStorage";
 import type { Mount } from "./StorageSettings";
 
 // Centered helper
@@ -41,18 +45,49 @@ function PathBreadcrumb({
   path,
   onCwdChange,
   storageName,
+  mounts,
+  currentId,
+  onPickStorage,
 }: {
   path: string;
   onCwdChange: (newCwd: string) => void;
   storageName: string;
+  mounts: Mount[];
+  currentId: string;
+  onPickStorage: (id: string) => void;
 }) {
   const parts = path.replace(/\/$/, "").split("/").filter(Boolean);
+  const [anchor, setAnchor] = React.useState<HTMLElement | null>(null);
 
   return (
     <Breadcrumbs separator="›" sx={{ padding: 1 }}>
-      <Typography color="text.secondary" noWrap sx={{ maxWidth: 160 }}>
-        {storageName || "R2"}
-      </Typography>
+      <Button
+        size="small"
+        onClick={(e) => setAnchor(e.currentTarget)}
+        sx={{ minWidth: 0, textTransform: "none" }}
+      >
+        {storageName || "R2"} ▾
+      </Button>
+      <Menu anchorEl={anchor} open={Boolean(anchor)} onClose={() => setAnchor(null)}>
+        {mounts.map((m) => (
+          <MenuItem
+            key={m.id}
+            selected={m.id === currentId}
+            onClick={() => {
+              setAnchor(null);
+              onPickStorage(m.id);
+            }}
+          >
+            <ListItemIcon>
+              <CheckIcon
+                fontSize="small"
+                sx={{ visibility: m.id === currentId ? "visible" : "hidden" }}
+              />
+            </ListItemIcon>
+            {m.name}
+          </MenuItem>
+        ))}
+      </Menu>
       {parts.length > 0 && (
         <Button onClick={() => onCwdChange("")} sx={{ minWidth: 0, padding: 0 }}>
           <HomeIcon fontSize="small" />
@@ -137,7 +172,7 @@ function Main({
   const [renameOpen, setRenameOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [mounts, setMounts] = useState<Mount[]>([]);
-  const [defaultId, setDefaultId] = useState("");
+  const [currentId, setCurrentId] = useState("");
 
   const transferQueue = useTransferQueue();
   const uploadEnqueue = useUploadEnqueue();
@@ -150,14 +185,16 @@ function Main({
       })
       .catch(onError)
       .finally(() => setLoading(false));
-  }, [cwd, onError]);
+  }, [cwd, onError, currentId]);
 
   useEffect(() => {
     fetch("/api/storage", { credentials: "include" })
       .then((r) => r.json())
       .then((data) => {
         setMounts(data.mounts || []);
-        setDefaultId(data.defaultId || "");
+        const def = data.defaultId || "";
+        setCurrentId((cur) => cur || def);
+        if (!getCurrentStorageId() && def) setCurrentStorageId(def);
       })
       .catch(() => {});
   }, []);
@@ -206,7 +243,15 @@ function Main({
       <PathBreadcrumb
         path={cwd}
         onCwdChange={setCwd}
-        storageName={mounts.find((m) => m.id === defaultId)?.name || ""}
+        storageName={mounts.find((m) => m.id === currentId)?.name || ""}
+        mounts={mounts}
+        currentId={currentId}
+        onPickStorage={(id) => {
+          setCurrentStorageId(id);
+          setCurrentId(id);
+          setCwd("");
+          setLoading(true);
+        }}
       />
 
       {loading ? (
@@ -270,7 +315,7 @@ function Main({
         onDownload={() => {
           if (multiSelected?.length !== 1) return;
           const a = document.createElement("a");
-          a.href = `/dav/${encodeKey(multiSelected[0])}`;
+          a.href = davPath(encodeKey(multiSelected[0]));
           a.download = multiSelected[0].split("/").pop()!;
           a.click();
         }}
@@ -285,7 +330,7 @@ function Main({
         onShare={() => {
           if (multiSelected?.length !== 1) return;
           const url = new URL(
-            `/dav/${encodeKey(multiSelected[0])}`,
+            davPath(encodeKey(multiSelected[0])),
             window.location.href
           );
           navigator.share({ url: url.toString() });
@@ -320,10 +365,7 @@ function Main({
           if (!multiSelected?.length) return;
           setDeleteOpen(false);
           for (const key of multiSelected)
-            await fetch(`/dav/${encodeKey(key)}`, {
-              method: "DELETE",
-              credentials: "include",
-            });
+            await fetch(davPath(encodeKey(key)), withDav({ method: "DELETE" }));
           fetchFiles();
         }}
       />

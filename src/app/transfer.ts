@@ -2,15 +2,15 @@ import pLimit from "p-limit";
 
 import { encodeKey, FileItem } from "../FileGrid";
 import { TransferTask } from "./transferQueue";
+import { davHeaders, withDav } from "../davStorage";
 
 const WEBDAV_ENDPOINT = "/dav/";
 
 export async function fetchPath(path: string) {
-  const res = await fetch(`${WEBDAV_ENDPOINT}${encodeKey(path)}`, {
+  const res = await fetch(`${WEBDAV_ENDPOINT}${encodeKey(path)}`, withDav({
     method: "PROPFIND",
     headers: { Depth: "1" },
-    credentials: "include",
-  });
+  }));
 
   if (!res.ok) throw new Error("Failed to fetch");
   if (!res.headers.get("Content-Type")?.includes("application/xml"))
@@ -126,7 +126,7 @@ function xhrFetch(
       url instanceof Request ? url.url : url
     );
     xhr.withCredentials = true;
-    const headers = new Headers(requestInit.headers);
+    const headers = davHeaders(requestInit.headers);
     headers.forEach((value, key) => xhr.setRequestHeader(key, value));
     xhr.onload = () => {
       const headers = xhr
@@ -164,11 +164,10 @@ export async function multipartUpload(
   const headers = options?.headers || {};
   headers["content-type"] = file.type;
 
-  const uploadResponse = await fetch(`/dav/${encodeKey(key)}?uploads`, {
+  const uploadResponse = await fetch(`/dav/${encodeKey(key)}?uploads`, withDav({
     headers,
     method: "POST",
-    credentials: "include",
-  });
+  }));
   const { uploadId } = await uploadResponse.json<{ uploadId: string }>();
   const totalChunks = Math.ceil(file.size / SIZE_LIMIT);
 
@@ -214,11 +213,10 @@ export async function multipartUpload(
   );
   const uploadedParts = await Promise.all(promises);
   const completeParams = new URLSearchParams({ uploadId });
-  const response = await fetch(`/dav/${encodeKey(key)}?${completeParams}`, {
+  const response = await fetch(`/dav/${encodeKey(key)}?${completeParams}`, withDav({
     method: "POST",
-    credentials: "include",
     body: JSON.stringify({ parts: uploadedParts }),
-  });
+  }));
   if (!response.ok) throw new Error(await response.text());
   return response;
 }
@@ -229,11 +227,10 @@ export async function copyPaste(source: string, target: string, move = false) {
     `${WEBDAV_ENDPOINT}${encodeKey(target)}`,
     window.location.href
   );
-  await fetch(uploadUrl, {
+  await fetch(uploadUrl, withDav({
     method: move ? "MOVE" : "COPY",
-    credentials: "include",
     headers: { Destination: destinationUrl.href },
-  });
+  }));
 }
 
 export async function createFolder(cwd: string, folderName: string) {
@@ -241,7 +238,7 @@ export async function createFolder(cwd: string, folderName: string) {
   if (folderName.includes("/")) throw new Error("Invalid folder name");
   const folderKey = `${cwd}${folderName}`;
   const uploadUrl = `${WEBDAV_ENDPOINT}${encodeKey(folderKey)}`;
-  await fetch(uploadUrl, { method: "MKCOL", credentials: "include" });
+  await fetch(uploadUrl, withDav({ method: "MKCOL" }));
 }
 
 export async function processTransferTask({
@@ -266,11 +263,10 @@ export async function processTransferTask({
 
       const thumbnailUploadUrl = `/dav/_$flaredrive$/thumbnails/${digestHex}.png`;
       try {
-        await fetch(thumbnailUploadUrl, {
+        await fetch(thumbnailUploadUrl, withDav({
           method: "PUT",
-          credentials: "include",
           body: thumbnailBlob,
-        });
+        }));
         thumbnailDigest = digestHex;
       } catch (error) {
         console.log(`Upload ${digestHex}.png failed`);

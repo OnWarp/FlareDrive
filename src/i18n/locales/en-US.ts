@@ -64,6 +64,7 @@ const enUS = {
   "storage.default": "Default storage",
   "storage.spaces": "Storages",
   "storage.add": "Add storage",
+  "storage.setDefault": "Set as default",
   "storage.edit": "Edit",
   "storage.delete": "Delete",
   "storage.type": "Type",
