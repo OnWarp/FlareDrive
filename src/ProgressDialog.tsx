@@ -18,6 +18,7 @@ import {
   CheckCircleOutline as CheckCircleOutlineIcon,
   ErrorOutline as ErrorOutlineIcon,
 } from "@mui/icons-material";
+import { useT } from "./i18n";
 
 function ProgressDialog({
   open,
@@ -26,6 +27,7 @@ function ProgressDialog({
   open: boolean;
   onClose: () => void;
 }) {
+  const t = useT();
   const [tab, setTab] = useState(0);
   const transferQueue: TransferTask[] = useTransferQueue();
 
@@ -38,19 +40,19 @@ function ProgressDialog({
 
   return (
     <Dialog open={open} onClose={onClose} fullWidth maxWidth="xs">
-      <DialogTitle>Progress</DialogTitle>
+      <DialogTitle>{t("progress.title")}</DialogTitle>
       <Tabs
         value={tab}
         onChange={(_, newTab) => setTab(newTab)}
         sx={{ "& .MuiTab-root": { flexBasis: "50%" } }}
       >
-        <Tab label="Downloads" />
-        <Tab label="Uploads" />
+        <Tab label={t("progress.downloads")} />
+        <Tab label={t("progress.uploads")} />
       </Tabs>
       {tasks.length === 0 ? (
         <DialogContent>
           <Typography textAlign="center" color="text.secondary">
-            No tasks
+            {t("progress.empty")}
           </Typography>
         </DialogContent>
       ) : (

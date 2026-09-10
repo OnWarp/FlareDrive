@@ -1,9 +1,4 @@
-import {
-  listAll,
-  RequestHandlerParams,
-  ROOT_OBJECT,
-  WEBDAV_ENDPOINT,
-} from "./utils";
+import { listAll, RequestHandlerParams, ROOT_OBJECT } from "./utils";
 
 type DavProperties = {
   creationdate: string | undefined;
@@ -59,6 +54,7 @@ export async function handleRequestPropfind({
   bucket,
   path,
   request,
+  davPrefix,
 }: RequestHandlerParams) {
   const responseTemplate = `<?xml version="1.0" encoding="utf-8" ?>
 <multistatus xmlns="DAV:" xmlns:fd="flaredrive">
@@ -84,7 +80,7 @@ export async function handleRequestPropfind({
     const properties = fromR2Object(child);
     return `
   <response>
-    <href>${encodeURI(`${WEBDAV_ENDPOINT}${child.key}`)}</href>
+    <href>${encodeURI(`${davPrefix}${child.key}`)}</href>
     <propstat>
       <prop>
         ${Object.entries(properties)

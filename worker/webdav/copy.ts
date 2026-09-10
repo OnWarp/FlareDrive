@@ -1,7 +1,7 @@
 import pLimit from "p-limit";
 
-import { notFound } from "./utils";
-import { listAll, RequestHandlerParams, WEBDAV_ENDPOINT } from "./utils";
+import { notFound, stripDavPathname } from "./utils";
+import { listAll, RequestHandlerParams } from "./utils";
 
 export async function handleRequestCopy({
   bucket,
@@ -17,10 +17,9 @@ export async function handleRequestCopy({
   if (src === null) return notFound();
 
   const destPathname = new URL(destinationHeader).pathname;
-  const decodedPathname = decodeURIComponent(destPathname).replace(/\/$/, "");
-  if (!decodedPathname.startsWith(WEBDAV_ENDPOINT))
-    return new Response("Bad Request", { status: 400 });
-  const destination = decodedPathname.slice(WEBDAV_ENDPOINT.length);
+  const stripped = stripDavPathname(destPathname.replace(/\/$/, "") || destPathname);
+  if (!stripped) return new Response("Bad Request", { status: 400 });
+  const destination = stripped.path;
 
   if (
     destination === path ||

@@ -9,6 +9,7 @@ import {
 } from "@mui/icons-material";
 import { createFolder } from "./app/transfer";
 import { useUploadEnqueue } from "./app/transferQueue";
+import { useT } from "./i18n";
 
 function IconCaptionButton({
   icon,
@@ -38,10 +39,11 @@ function IconCaptionButton({
 
 export const UploadFab = forwardRef<HTMLButtonElement, { onClick: () => void }>(
   function ({ onClick }, ref) {
+    const t = useT();
     return (
       <Fab
         ref={ref}
-        aria-label="Upload"
+        aria-label={t("files.upload")}
         variant="circular"
         color="primary"
         size="large"
@@ -66,6 +68,7 @@ function UploadDrawer({
   onUpload: () => void;
 }) {
   const uploadEnqueue = useUploadEnqueue();
+  const t = useT();
 
   const handleUpload = useCallback(
     (action: string) => () => {
@@ -112,32 +115,38 @@ function UploadDrawer({
           <Grid item xs={3}>
             <IconCaptionButton
               icon={<CameraIcon fontSize="large" />}
-              caption="Camera"
+              caption={t("files.camera")}
               onClick={takePhoto}
             />
           </Grid>
           <Grid item xs={3}>
             <IconCaptionButton
               icon={<ImageIcon fontSize="large" />}
-              caption="Image/Video"
+              caption={t("files.imageVideo")}
               onClick={uploadImage}
             />
           </Grid>
           <Grid item xs={3}>
             <IconCaptionButton
               icon={<UploadIcon fontSize="large" />}
-              caption="Upload"
+              caption={t("files.upload")}
               onClick={uploadFile}
             />
           </Grid>
           <Grid item xs={3}>
             <IconCaptionButton
               icon={<CreateNewFolderIcon fontSize="large" />}
-              caption="Create Folder"
+              caption={t("files.createFolder")}
               onClick={async () => {
                 setOpen(false);
-                await createFolder(cwd);
-                onUpload();
+                const folderName = window.prompt(t("files.folderName"));
+                if (!folderName) return;
+                try {
+                  await createFolder(cwd, folderName);
+                  onUpload();
+                } catch {
+                  window.alert(t("files.invalidFolderName"));
+                }
               }}
             />
           </Grid>

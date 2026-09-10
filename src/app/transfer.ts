@@ -3,12 +3,13 @@ import pLimit from "p-limit";
 import { encodeKey, FileItem } from "../FileGrid";
 import { TransferTask } from "./transferQueue";
 
-const WEBDAV_ENDPOINT = "/webdav/";
+const WEBDAV_ENDPOINT = "/dav/";
 
 export async function fetchPath(path: string) {
   const res = await fetch(`${WEBDAV_ENDPOINT}${encodeKey(path)}`, {
     method: "PROPFIND",
     headers: { Depth: "1" },
+    credentials: "include",
   });
 
   if (!res.ok) throw new Error("Failed to fetch");
@@ -37,7 +38,7 @@ export async function fetchPath(path: string) {
         "thumbnail"
       )[0]?.textContent;
       return {
-        key: decodeURI(href).replace(/^\/webdav\//, ""),
+        key: decodeURI(href).replace(/^\/dav\/|^\/webdav\//, ""),
         size: size ? Number(size) : 0,
         uploaded: lastModified!,
         httpMetadata: { contentType: contentType! },
@@ -124,6 +125,7 @@ function xhrFetch(
       requestInit.method ?? "GET",
       url instanceof Request ? url.url : url
     );
+    xhr.withCredentials = true;
     const headers = new Headers(requestInit.headers);
     headers.forEach((value, key) => xhr.setRequestHeader(key, value));
     xhr.onload = () => {
@@ -162,9 +164,10 @@ export async function multipartUpload(
   const headers = options?.headers || {};
   headers["content-type"] = file.type;
 
-  const uploadResponse = await fetch(`/webdav/${encodeKey(key)}?uploads`, {
+  const uploadResponse = await fetch(`/dav/${encodeKey(key)}?uploads`, {
     headers,
     method: "POST",
+    credentials: "include",
   });
   const { uploadId } = await uploadResponse.json<{ uploadId: string }>();
   const totalChunks = Math.ceil(file.size / SIZE_LIMIT);
@@ -179,7 +182,7 @@ export async function multipartUpload(
         partNumber: i.toString(),
         uploadId,
       });
-      const uploadUrl = `/webdav/${encodeKey(key)}?${searchParams}`;
+      const uploadUrl = `/dav/${encodeKey(key)}?${searchParams}`;
       if (i === limit.concurrency)
         await new Promise((resolve) => setTimeout(resolve, 1000));
 
@@ -211,8 +214,9 @@ export async function multipartUpload(
   );
   const uploadedParts = await Promise.all(promises);
   const completeParams = new URLSearchParams({ uploadId });
-  const response = await fetch(`/webdav/${encodeKey(key)}?${completeParams}`, {
+  const response = await fetch(`/dav/${encodeKey(key)}?${completeParams}`, {
     method: "POST",
+    credentials: "include",
     body: JSON.stringify({ parts: uploadedParts }),
   });
   if (!response.ok) throw new Error(await response.text());
@@ -227,24 +231,17 @@ export async function copyPaste(source: string, target: string, move = false) {
   );
   await fetch(uploadUrl, {
     method: move ? "MOVE" : "COPY",
+    credentials: "include",
     headers: { Destination: destinationUrl.href },
   });
 }
 
-export async function createFolder(cwd: string) {
-  try {
-    const folderName = window.prompt("Folder name");
-    if (!folderName) return;
-    if (folderName.includes("/")) {
-      window.alert("Invalid folder name");
-      return;
-    }
-    const folderKey = `${cwd}${folderName}`;
-    const uploadUrl = `${WEBDAV_ENDPOINT}${encodeKey(folderKey)}`;
-    await fetch(uploadUrl, { method: "MKCOL" });
-  } catch (error) {
-    console.log(`Create folder failed`);
-  }
+export async function createFolder(cwd: string, folderName: string) {
+  if (!folderName) return;
+  if (folderName.includes("/")) throw new Error("Invalid folder name");
+  const folderKey = `${cwd}${folderName}`;
+  const uploadUrl = `${WEBDAV_ENDPOINT}${encodeKey(folderKey)}`;
+  await fetch(uploadUrl, { method: "MKCOL", credentials: "include" });
 }
 
 export async function processTransferTask({
@@ -267,10 +264,11 @@ export async function processTransferTask({
       const thumbnailBlob = await generateThumbnail(file);
       const digestHex = await blobDigest(thumbnailBlob);
 
-      const thumbnailUploadUrl = `/webdav/_$flaredrive$/thumbnails/${digestHex}.png`;
+      const thumbnailUploadUrl = `/dav/_$flaredrive$/thumbnails/${digestHex}.png`;
       try {
         await fetch(thumbnailUploadUrl, {
           method: "PUT",
+          credentials: "include",
           body: thumbnailBlob,
         });
         thumbnailDigest = digestHex;

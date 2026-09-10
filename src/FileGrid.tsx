@@ -57,7 +57,7 @@ function FileGrid({
                 onCwdChange(file.key + "/");
               } else
                 window.open(
-                  `/webdav/${encodeKey(file.key)}`,
+                  `/dav/${encodeKey(file.key)}`,
                   "_blank",
                   "noopener,noreferrer"
                 );
@@ -71,7 +71,7 @@ function FileGrid({
             <ListItemIcon>
               {file.customMetadata?.thumbnail ? (
                 <img
-                  src={`/webdav/_$flaredrive$/thumbnails/${file.customMetadata.thumbnail}.png`}
+                  src={`/dav/_$flaredrive$/thumbnails/${file.customMetadata.thumbnail}.png`}
                   alt={file.key}
                   style={{ width: 36, height: 36, objectFit: "cover" }}
                 />

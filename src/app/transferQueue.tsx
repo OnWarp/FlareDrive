@@ -84,10 +84,12 @@ export function TransferQueueProvider({
     })
       .then(() => {
         setTransferTasks(currentTaskUpdater({ status: "completed" }));
-        taskProcessing.current = null;
       })
       .catch((error) => {
         setTransferTasks(currentTaskUpdater({ status: "failed", error }));
+      })
+      .finally(() => {
+        taskProcessing.current = null;
       });
   }, [transferTasks]);
 

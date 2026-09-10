@@ -10,6 +10,11 @@
 
 # production
 /build
+/dist
+
+# wrangler
+/.wrangler
+.dev.vars
 
 # misc
 .DS_Store
@@ -23,4 +28,3 @@ yarn-debug.log*
 yarn-error.log*
 
 /.vscode
-/.wrangler

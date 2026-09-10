@@ -16,6 +16,7 @@ import UploadDrawer, { UploadFab } from "./UploadDrawer";
 import TextPadDrawer from "./TextPadDrawer";
 import { copyPaste, fetchPath } from "./app/transfer";
 import { useTransferQueue, useUploadEnqueue } from "./app/transferQueue";
+import { useT } from "./i18n";
 
 // Centered helper
 function Centered({ children }: { children: React.ReactNode }) {
@@ -116,6 +117,7 @@ function Main({
   search: string;
   onError: (error: Error) => void;
 }) {
+  const t = useT();
   const [cwd, setCwd] = useState("");
   const [files, setFiles] = useState<FileItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -197,7 +199,7 @@ function Main({
             onCwdChange={(newCwd: string) => setCwd(newCwd)}
             multiSelected={multiSelected}
             onMultiSelect={handleMultiSelect}
-            emptyMessage={<Centered>No files or folders</Centered>}
+            emptyMessage={<Centered>{t("files.empty")}</Centered>}
           />
         </DropZone>
       )}
@@ -216,7 +218,7 @@ function Main({
             }}
             onClick={() => setShowTextPadDrawer(true)}
           >
-            Open TextPad
+            {t("files.textPad")}
           </Button>
         </>
       )}
@@ -241,13 +243,13 @@ function Main({
         onDownload={() => {
           if (multiSelected?.length !== 1) return;
           const a = document.createElement("a");
-          a.href = `/webdav/${encodeKey(multiSelected[0])}`;
+          a.href = `/dav/${encodeKey(multiSelected[0])}`;
           a.download = multiSelected[0].split("/").pop()!;
           a.click();
         }}
         onRename={async () => {
           if (multiSelected?.length !== 1) return;
-          const newName = window.prompt("Rename to:");
+          const newName = window.prompt(t("files.renameTo"));
           if (!newName) return;
           await copyPaste(multiSelected[0], cwd + newName, true);
           fetchFiles();
@@ -257,16 +259,19 @@ function Main({
           const filenames = multiSelected
             .map((key) => key.replace(/\/$/, "").split("/").pop())
             .join("\n");
-          const confirmMessage = "Delete the following file(s) permanently?";
+          const confirmMessage = t("files.deleteConfirm");
           if (!window.confirm(`${confirmMessage}\n${filenames}`)) return;
           for (const key of multiSelected)
-            await fetch(`/webdav/${encodeKey(key)}`, { method: "DELETE" });
+            await fetch(`/dav/${encodeKey(key)}`, {
+              method: "DELETE",
+              credentials: "include",
+            });
           fetchFiles();
         }}
         onShare={() => {
           if (multiSelected?.length !== 1) return;
           const url = new URL(
-            `/webdav/${encodeKey(multiSelected[0])}`,
+            `/dav/${encodeKey(multiSelected[0])}`,
             window.location.href
           );
           navigator.share({ url: url.toString() });

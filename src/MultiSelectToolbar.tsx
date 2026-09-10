@@ -6,6 +6,7 @@ import {
   Download as DownloadIcon,
   MoreHoriz as MoreHorizIcon,
 } from "@mui/icons-material";
+import { useT } from "./i18n";
 
 function MultiSelectToolbar({
   multiSelected,
@@ -22,6 +23,7 @@ function MultiSelectToolbar({
   onDelete: () => void;
   onShare: () => void;
 }) {
+  const t = useT();
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
 
   return (
@@ -70,8 +72,8 @@ function MultiSelectToolbar({
           >
             {multiSelected.length === 1 && (
               <React.Fragment>
-                <MenuItem onClick={onRename}>Rename</MenuItem>
-                <MenuItem onClick={onShare}>Share</MenuItem>
+                <MenuItem onClick={onRename}>{t("files.rename")}</MenuItem>
+                <MenuItem onClick={onShare}>{t("files.share")}</MenuItem>
               </React.Fragment>
             )}
           </Menu>
