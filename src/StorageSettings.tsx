@@ -48,8 +48,8 @@ async function api(path: string, init?: RequestInit) {
   });
 }
 
-export function driverLabel(type: Mount["type"]) {
-  return type === "r2" ? "Cloudflare R2" : "Custom S3";
+export function driverLabel(type: Mount["type"], t: (k: string) => string) {
+  return type === "r2" ? t("settings.storage.r2Name") : t("storage.type.s3");
 }
 
 export default function StoragePanel({ onChanged }: { onChanged?: () => void }) {
@@ -84,7 +84,7 @@ export default function StoragePanel({ onChanged }: { onChanged?: () => void }) 
             </ListItemIcon>
             <ListItemText
               primary={m.name}
-              secondary={driverLabel(m.type)}
+              secondary={driverLabel(m.type, t)}
               sx={{ minWidth: 0, mr: 1 }}
               primaryTypographyProps={{ noWrap: true }}
               secondaryTypographyProps={{ noWrap: true }}

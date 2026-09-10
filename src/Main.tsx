@@ -56,6 +56,7 @@ function PathBreadcrumb({
   currentId: string;
   onPickStorage: (id: string) => void;
 }) {
+  const t = useT();
   const parts = path.replace(/\/$/, "").split("/").filter(Boolean);
   const [anchor, setAnchor] = React.useState<HTMLElement | null>(null);
 
@@ -66,7 +67,7 @@ function PathBreadcrumb({
         onClick={(e) => setAnchor(e.currentTarget)}
         sx={{ minWidth: 0, textTransform: "none" }}
       >
-        {storageName || "R2"} ▾
+        {storageName || t("settings.storage.r2")} ▾
       </Button>
       <Menu anchorEl={anchor} open={Boolean(anchor)} onClose={() => setAnchor(null)}>
         {mounts.map((m) => (

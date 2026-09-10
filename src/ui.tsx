@@ -13,6 +13,7 @@ export const ROW_SX = {
   minHeight: 56,
   px: 2,
   borderRadius: 0,
+  "&.Mui-selected": { borderRadius: 0 },
   "& .MuiListItemIcon-root": { minWidth: 40 },
 };
 
