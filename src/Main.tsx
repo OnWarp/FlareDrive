@@ -6,12 +6,9 @@ import {
   Button,
   CircularProgress,
   Link,
-  Menu,
-  MenuItem,
-  ListItemIcon,
   Typography,
 } from "@mui/material";
-import { Check as CheckIcon, Home as HomeIcon, NoteAdd as NoteAddIcon } from "@mui/icons-material";
+import { Home as HomeIcon, NoteAdd as NoteAddIcon } from "@mui/icons-material";
 
 import FileGrid, { encodeKey, FileItem, isDirectory } from "./FileGrid";
 import MultiSelectToolbar from "./MultiSelectToolbar";
@@ -21,8 +18,6 @@ import { copyPaste, fetchPath } from "./app/transfer";
 import { useTransferQueue, useUploadEnqueue } from "./app/transferQueue";
 import { ConfirmDialog, PromptDialog } from "./dialogs";
 import { useT } from "./i18n";
-import { davPath, getCurrentStorageId, setCurrentStorageId, withDav } from "./davStorage";
-import type { Mount } from "./StorageSettings";
 
 // Centered helper
 function Centered({ children }: { children: React.ReactNode }) {
@@ -40,60 +35,20 @@ function Centered({ children }: { children: React.ReactNode }) {
   );
 }
 
-// Breadcrumb component
 function PathBreadcrumb({
   path,
   onCwdChange,
-  storageName,
-  mounts,
-  currentId,
-  onPickStorage,
 }: {
   path: string;
   onCwdChange: (newCwd: string) => void;
-  storageName: string;
-  mounts: Mount[];
-  currentId: string;
-  onPickStorage: (id: string) => void;
 }) {
-  const t = useT();
   const parts = path.replace(/\/$/, "").split("/").filter(Boolean);
-  const [anchor, setAnchor] = React.useState<HTMLElement | null>(null);
 
   return (
     <Breadcrumbs separator="›" sx={{ padding: 1 }}>
-      <Button
-        size="small"
-        onClick={(e) => setAnchor(e.currentTarget)}
-        sx={{ minWidth: 0, textTransform: "none" }}
-      >
-        {storageName || t("settings.storage.r2")} ▾
+      <Button onClick={() => onCwdChange("")} sx={{ minWidth: 0, padding: 0 }}>
+        <HomeIcon />
       </Button>
-      <Menu anchorEl={anchor} open={Boolean(anchor)} onClose={() => setAnchor(null)}>
-        {mounts.map((m) => (
-          <MenuItem
-            key={m.id}
-            selected={m.id === currentId}
-            onClick={() => {
-              setAnchor(null);
-              onPickStorage(m.id);
-            }}
-          >
-            <ListItemIcon>
-              <CheckIcon
-                fontSize="small"
-                sx={{ visibility: m.id === currentId ? "visible" : "hidden" }}
-              />
-            </ListItemIcon>
-            {m.name}
-          </MenuItem>
-        ))}
-      </Menu>
-      {parts.length > 0 && (
-        <Button onClick={() => onCwdChange("")} sx={{ minWidth: 0, padding: 0 }}>
-          <HomeIcon fontSize="small" />
-        </Button>
-      )}
       {parts.map((part, index) =>
         index === parts.length - 1 ? (
           <Typography key={index} color="text.primary">
@@ -172,8 +127,6 @@ function Main({
   const [lastUploadKey, setLastUploadKey] = useState<string | null>(null);
   const [renameOpen, setRenameOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
-  const [mounts, setMounts] = useState<Mount[]>([]);
-  const [currentId, setCurrentId] = useState("");
 
   const transferQueue = useTransferQueue();
   const uploadEnqueue = useUploadEnqueue();
@@ -186,19 +139,7 @@ function Main({
       })
       .catch(onError)
       .finally(() => setLoading(false));
-  }, [cwd, onError, currentId]);
-
-  useEffect(() => {
-    fetch("/api/storage", { credentials: "include" })
-      .then((r) => r.json())
-      .then((data) => {
-        setMounts(data.mounts || []);
-        const def = data.defaultId || "";
-        setCurrentId((cur) => cur || def);
-        if (!getCurrentStorageId() && def) setCurrentStorageId(def);
-      })
-      .catch(() => {});
-  }, []);
+  }, [cwd, onError]);
 
   useEffect(() => setLoading(true), [cwd]);
 
@@ -241,19 +182,7 @@ function Main({
 
   return (
     <>
-      <PathBreadcrumb
-        path={cwd}
-        onCwdChange={setCwd}
-        storageName={mounts.find((m) => m.id === currentId)?.name || ""}
-        mounts={mounts}
-        currentId={currentId}
-        onPickStorage={(id) => {
-          setCurrentStorageId(id);
-          setCurrentId(id);
-          setCwd("");
-          setLoading(true);
-        }}
-      />
+      {cwd && <PathBreadcrumb path={cwd} onCwdChange={setCwd} />}
 
       {loading ? (
         <Centered>
@@ -316,7 +245,7 @@ function Main({
         onDownload={() => {
           if (multiSelected?.length !== 1) return;
           const a = document.createElement("a");
-          a.href = davPath(encodeKey(multiSelected[0]));
+          a.href = `/dav/${encodeKey(multiSelected[0])}`;
           a.download = multiSelected[0].split("/").pop()!;
           a.click();
         }}
@@ -331,7 +260,7 @@ function Main({
         onShare={() => {
           if (multiSelected?.length !== 1) return;
           const url = new URL(
-            davPath(encodeKey(multiSelected[0])),
+            `/dav/${encodeKey(multiSelected[0])}`,
             window.location.href
           );
           navigator.share({ url: url.toString() });
@@ -366,7 +295,10 @@ function Main({
           if (!multiSelected?.length) return;
           setDeleteOpen(false);
           for (const key of multiSelected)
-            await fetch(davPath(encodeKey(key)), withDav({ method: "DELETE" }));
+            await fetch(`/dav/${encodeKey(key)}`, {
+              method: "DELETE",
+              credentials: "include",
+            });
           fetchFiles();
         }}
       />

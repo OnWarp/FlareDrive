@@ -1,7 +1,6 @@
 import type { Env } from "./env";
 import { authorizeDav, handleAuthApi } from "./auth";
-import { handleStorageApi } from "./api/storage";
-import { StorageManager } from "./storage/manager";
+import { R2Provider } from "./storage/providers/r2";
 import { handleRequestCopy } from "./webdav/copy";
 import { handleRequestDelete } from "./webdav/delete";
 import { handleRequestGet } from "./webdav/get";
@@ -50,14 +49,9 @@ async function handleWebdav(request: Request, env: Env): Promise<Response> {
 
   const stripped = stripDavPathname(new URL(request.url).pathname);
   if (!stripped) return notFound();
+  if (!env.BUCKET) return notFound();
 
-  const mgr = await StorageManager.load(env);
-  const sid =
-    request.headers.get("X-FlareDrive-Storage") ||
-    new URL(request.url).searchParams.get("storage") ||
-    "";
-  const store = sid ? mgr.provider(sid) : mgr.defaultProvider();
-
+  const store = new R2Provider("r2", env.BUCKET);
   const handler =
     HANDLERS[request.method] ??
     (() => Promise.resolve(new Response(null, { status: 405 })));
@@ -76,9 +70,6 @@ export default {
 
     if (path.startsWith("/api/auth")) {
       return handleAuthApi(request, env);
-    }
-    if (path.startsWith("/api/storage")) {
-      return handleStorageApi(request, env);
     }
     if (davPrefixFromPath(path)) {
       return handleWebdav(request, env);

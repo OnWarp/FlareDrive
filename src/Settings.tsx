@@ -19,7 +19,6 @@ import {
 import { useAppearance, type Appearance } from "./appearance";
 import { useLocale, useT } from "./i18n";
 import type { Locale } from "./i18n/types";
-import StoragePanel from "./StorageSettings";
 import { IconTip, SETTINGS_MAX, Section, useCompactScreen } from "./ui";
 
 const VERSION = "0.2.0";
@@ -92,7 +91,14 @@ export default function Settings({
         </Section>
 
         <Section title={t("settings.storage")}>
-          <StoragePanel />
+          <List disablePadding>
+            <ListItemButton disabled>
+              <ListItemText
+                primary={t("settings.storage.r2")}
+                secondary={t("settings.storage.r2Name")}
+              />
+            </ListItemButton>
+          </List>
         </Section>
 
         <Section title={t("settings.webdav")}>
