@@ -1,22 +1,20 @@
-import { notFound } from "./utils";
-import { listAll, RequestHandlerParams } from "./utils";
+import { listAll, notFound, RequestHandlerParams } from "./utils";
 
 export async function handleRequestDelete({
-  bucket,
+  store,
   path,
 }: RequestHandlerParams) {
   if (path !== "") {
-    const obj = await bucket.head(path);
+    const obj = await store.head(path);
     if (obj === null) return notFound();
-    await bucket.delete(path);
+    await store.delete(path);
     if (obj.httpMetadata?.contentType !== "application/x-directory")
       return new Response(null, { status: 204 });
   }
 
-  const children = listAll(bucket, path === "" ? undefined : `${path}/`);
-  for await (const child of children) {
-    await bucket.delete(child.key);
+  const prefix = path === "" ? undefined : `${path}/`;
+  for await (const child of listAll(store, prefix, true)) {
+    await store.delete(child.key);
   }
-
   return new Response(null, { status: 204 });
 }

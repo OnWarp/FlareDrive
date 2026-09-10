@@ -1,21 +1,18 @@
-import type { Env } from "../env";
+import type { FileEntry, StorageProvider } from "../storage/types";
 
 export interface RequestHandlerParams {
-  bucket: R2Bucket;
+  store: StorageProvider;
   path: string;
   request: Request;
   davPrefix: string;
 }
 
-export const ROOT_OBJECT = {
+export const ROOT_OBJECT: FileEntry = {
   key: "",
   uploaded: new Date(),
   httpMetadata: {
     contentType: "application/x-directory",
-    contentDisposition: undefined,
-    contentLanguage: undefined,
   },
-  customMetadata: undefined,
   size: 0,
   etag: undefined,
 };
@@ -46,42 +43,12 @@ export function stripDavPathname(pathname: string): {
   return { davPrefix: prefix, path: rest };
 }
 
-export function parseBucketPath(
-  request: Request,
-  env: Env
-): { bucket: R2Bucket; path: string; davPrefix: string } | undefined {
-  const url = new URL(request.url);
-  const stripped = stripDavPathname(url.pathname);
-  if (!stripped) return undefined;
-
-  const driveid = url.hostname.replace(/\..*/, "");
-  const named = env[driveid];
-  const bucket =
-    named && typeof named === "object" && "list" in named
-      ? (named as R2Bucket)
-      : env.BUCKET;
-  if (!bucket) return undefined;
-  return { bucket, path: stripped.path, davPrefix: stripped.davPrefix };
-}
-
 export async function* listAll(
-  bucket: R2Bucket,
+  store: StorageProvider,
   prefix?: string,
   isRecursive: boolean = false
 ) {
-  let cursor: string | undefined = undefined;
-  do {
-    var r2Objects = await bucket.list({
-      prefix: prefix,
-      delimiter: isRecursive ? undefined : "/",
-      cursor: cursor,
-      // @ts-ignore
-      include: ["httpMetadata", "customMetadata"],
-    });
-
-    for await (const obj of r2Objects.objects)
-      if (!obj.key.startsWith("_$flaredrive$/")) yield obj;
-
-    if (r2Objects.truncated) cursor = r2Objects.cursor;
-  } while (r2Objects.truncated);
+  for await (const obj of store.list(prefix, isRecursive)) {
+    if (!obj.key.startsWith("_$flaredrive$/")) yield obj;
+  }
 }

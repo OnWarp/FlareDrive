@@ -22,6 +22,7 @@ import {
 import { useAppearance, type Appearance } from "./appearance";
 import { useLocale, useT } from "./i18n";
 import type { Locale } from "./i18n/types";
+import StoragePanel from "./StorageSettings";
 
 const VERSION = "0.2.0";
 const GITHUB = "https://github.com/OnWarp/FlareDrive";
@@ -124,17 +125,7 @@ export default function Settings({
           </Section>
 
           <Section title={t("settings.storage")}>
-            <List disablePadding>
-              <ListItemButton disabled>
-                <ListItemText
-                  primary={t("settings.storage.r2")}
-                  secondary={t("settings.storage.r2Name")}
-                />
-                <Typography variant="body2" color="success.main">
-                  {t("settings.storage.connected")}
-                </Typography>
-              </ListItemButton>
-            </List>
+            <StoragePanel />
           </Section>
 
           <Section title={t("settings.webdav")}>

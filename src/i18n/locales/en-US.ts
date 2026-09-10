@@ -61,6 +61,17 @@ const enUS = {
   "settings.about.blurb": "Lightweight personal cloud on Cloudflare Workers + R2.",
   "settings.about.version": "Version {version}",
   "settings.about.github": "GitHub",
+  "storage.default": "Default storage",
+  "storage.spaces": "Storages",
+  "storage.add": "Add storage",
+  "storage.edit": "Edit",
+  "storage.delete": "Delete",
+  "storage.type": "Type",
+  "storage.type.s3": "Custom S3",
+  "storage.name": "Name",
+  "storage.test": "Test connection",
+  "storage.test.ok": "Connected",
+  "storage.test.fail": "Connection failed",
 } satisfies Record<string, string>;
 
 export default enUS;

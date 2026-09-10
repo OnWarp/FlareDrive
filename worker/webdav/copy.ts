@@ -1,10 +1,8 @@
 import pLimit from "p-limit";
-
-import { notFound, stripDavPathname } from "./utils";
-import { listAll, RequestHandlerParams } from "./utils";
+import { listAll, notFound, RequestHandlerParams, stripDavPathname } from "./utils";
 
 export async function handleRequestCopy({
-  bucket,
+  store,
   path,
   request,
 }: RequestHandlerParams) {
@@ -13,7 +11,7 @@ export async function handleRequestCopy({
   if (destinationHeader === null)
     return new Response("Bad Request", { status: 400 });
 
-  const src = await bucket.get(path);
+  const src = await store.head(path);
   if (src === null) return notFound();
 
   const destPathname = new URL(destinationHeader).pathname;
@@ -28,17 +26,13 @@ export async function handleRequestCopy({
   )
     return new Response("Bad Request", { status: 400 });
 
-  // Check if the destination already exists
-  const destinationExists = await bucket.head(destination);
+  const destinationExists = await store.head(destination);
   if (dontOverwrite && destinationExists)
     return new Response("Precondition Failed", { status: 412 });
-  await bucket.put(destination, src.body, {
-    httpMetadata: src.httpMetadata,
-    customMetadata: src.customMetadata,
-  });
 
-  const isDirectory =
-    src.httpMetadata?.contentType === "application/x-directory";
+  await store.copy(path, destination);
+
+  const isDirectory = src.httpMetadata?.contentType === "application/x-directory";
   if (isDirectory) {
     const depth = request.headers.get("Depth") ?? "infinity";
     switch (depth) {
@@ -46,19 +40,11 @@ export async function handleRequestCopy({
         break;
       case "infinity": {
         const prefix = path + "/";
-        const copy = async (object: R2Object) => {
-          const target = `${destination}/${object.key.slice(prefix.length)}`;
-          const src = await bucket.get(object.key);
-          if (src === null) return;
-          await bucket.put(target, src.body, {
-            httpMetadata: object.httpMetadata,
-            customMetadata: object.customMetadata,
-          });
-        };
         const limit = pLimit(5);
         const promises = [];
-        for await (const object of listAll(bucket, prefix, true)) {
-          promises.push(limit(() => copy(object)));
+        for await (const object of listAll(store, prefix, true)) {
+          const target = `${destination}/${object.key.slice(prefix.length)}`;
+          promises.push(limit(() => store.copy(object.key, target)));
         }
         await Promise.all(promises);
         break;
@@ -70,7 +56,6 @@ export async function handleRequestCopy({
 
   if (destinationExists) {
     return new Response(null, { status: 204 });
-  } else {
-    return new Response("", { status: 201 });
   }
+  return new Response("", { status: 201 });
 }

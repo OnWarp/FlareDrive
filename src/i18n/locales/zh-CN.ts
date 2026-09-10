@@ -61,6 +61,17 @@ const zhCN: Record<string, string> = {
   "settings.about.blurb": "跑在 Cloudflare Workers + R2 上的轻量个人云盘。",
   "settings.about.version": "版本 {version}",
   "settings.about.github": "GitHub",
+  "storage.default": "默认存储",
+  "storage.spaces": "存储空间",
+  "storage.add": "添加存储",
+  "storage.edit": "编辑",
+  "storage.delete": "删除",
+  "storage.type": "存储类型",
+  "storage.type.s3": "自定义 S3",
+  "storage.name": "名称",
+  "storage.test": "测试连接",
+  "storage.test.ok": "已连接",
+  "storage.test.fail": "连接失败",
 };
 
 export default zhCN;

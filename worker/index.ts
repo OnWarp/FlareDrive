@@ -1,5 +1,7 @@
 import type { Env } from "./env";
 import { authorizeDav, handleAuthApi } from "./auth";
+import { handleStorageApi } from "./api/storage";
+import { StorageManager } from "./storage/manager";
 import { handleRequestCopy } from "./webdav/copy";
 import { handleRequestDelete } from "./webdav/delete";
 import { handleRequestGet } from "./webdav/get";
@@ -12,7 +14,7 @@ import { handleRequestPut } from "./webdav/put";
 import {
   davPrefixFromPath,
   notFound,
-  parseBucketPath,
+  stripDavPathname,
   type RequestHandlerParams,
 } from "./webdav/utils";
 
@@ -46,14 +48,21 @@ async function handleWebdav(request: Request, env: Env): Promise<Response> {
   const denied = await authorizeDav(request, env);
   if (denied) return denied;
 
-  const parsed = parseBucketPath(request, env);
-  if (!parsed) return notFound();
-  const { bucket, path, davPrefix } = parsed;
+  const stripped = stripDavPathname(new URL(request.url).pathname);
+  if (!stripped) return notFound();
+
+  const mgr = await StorageManager.load(env);
+  const store = mgr.defaultProvider();
 
   const handler =
     HANDLERS[request.method] ??
     (() => Promise.resolve(new Response(null, { status: 405 })));
-  return handler({ bucket, path, request, davPrefix });
+  return handler({
+    store,
+    path: stripped.path,
+    request,
+    davPrefix: stripped.davPrefix,
+  });
 }
 
 export default {
@@ -63,6 +72,9 @@ export default {
 
     if (path.startsWith("/api/auth")) {
       return handleAuthApi(request, env);
+    }
+    if (path.startsWith("/api/storage")) {
+      return handleStorageApi(request, env);
     }
     if (davPrefixFromPath(path)) {
       return handleWebdav(request, env);

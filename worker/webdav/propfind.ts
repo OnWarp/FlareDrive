@@ -1,3 +1,4 @@
+import type { FileEntry } from "../storage/types";
 import { listAll, RequestHandlerParams, ROOT_OBJECT } from "./utils";
 
 type DavProperties = {
@@ -12,7 +13,7 @@ type DavProperties = {
   "fd:thumbnail": string | undefined;
 };
 
-function fromR2Object(object: R2Object | typeof ROOT_OBJECT): DavProperties {
+function fromEntry(object: FileEntry): DavProperties {
   return {
     creationdate: object.uploaded.toUTCString(),
     displayname: object.httpMetadata?.contentDisposition,
@@ -29,29 +30,8 @@ function fromR2Object(object: R2Object | typeof ROOT_OBJECT): DavProperties {
   };
 }
 
-async function findChildren({
-  bucket,
-  path,
-  depth,
-}: {
-  bucket: R2Bucket;
-  path: string;
-  depth: string;
-}) {
-  if (!["1", "infinity"].includes(depth)) return [];
-
-  const objects: Array<R2Object> = [];
-
-  const prefix = path === "" ? path : `${path}/`;
-  for await (const object of listAll(bucket, prefix, depth === "infinity")) {
-    objects.push(object);
-  }
-
-  return objects;
-}
-
 export async function handleRequestPropfind({
-  bucket,
+  store,
   path,
   request,
   davPrefix,
@@ -61,23 +41,23 @@ export async function handleRequestPropfind({
 {{items}}
 </multistatus>`;
 
-  const rootObject = path === "" ? ROOT_OBJECT : await bucket.head(path);
+  const rootObject = path === "" ? ROOT_OBJECT : await store.head(path);
   if (!rootObject) return new Response("Not found", { status: 404 });
   const isDirectory =
     rootObject === ROOT_OBJECT ||
     rootObject.httpMetadata?.contentType === "application/x-directory";
   const depth = request.headers.get("Depth") ?? "infinity";
 
-  const children = !isDirectory
-    ? []
-    : await findChildren({
-        bucket,
-        path,
-        depth,
-      });
+  const children: FileEntry[] = [];
+  if (isDirectory && ["1", "infinity"].includes(depth)) {
+    const prefix = path === "" ? path : `${path}/`;
+    for await (const object of listAll(store, prefix, depth === "infinity")) {
+      children.push(object);
+    }
+  }
 
   const items = [rootObject, ...children].map((child) => {
-    const properties = fromR2Object(child);
+    const properties = fromEntry(child);
     return `
   <response>
     <href>${encodeURI(`${davPrefix}${child.key}`)}</href>
