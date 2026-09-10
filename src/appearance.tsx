@@ -38,7 +38,10 @@ export function AppearanceProvider({ children }: { children: ReactNode }) {
     () =>
       createTheme({
         palette: { mode, primary: { main: "#f38020" } },
-        shape: { borderRadius: 12 },
+        shape: { borderRadius: 16 },
+        components: {
+          MuiDialog: { styleOverrides: { paper: { borderRadius: 16 } } },
+        },
       }),
     [mode]
   );

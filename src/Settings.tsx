@@ -4,14 +4,11 @@ import {
   Button,
   Dialog,
   DialogTitle,
-  IconButton,
   List,
   ListItemButton,
   ListItemIcon,
   ListItemText,
-  Paper,
   Snackbar,
-  Typography,
 } from "@mui/material";
 import {
   ArrowBack as ArrowBackIcon,
@@ -23,34 +20,12 @@ import { useAppearance, type Appearance } from "./appearance";
 import { useLocale, useT } from "./i18n";
 import type { Locale } from "./i18n/types";
 import StoragePanel from "./StorageSettings";
+import { IconTip, SETTINGS_MAX, Section } from "./ui";
 
 const VERSION = "0.2.0";
 const GITHUB = "https://github.com/OnWarp/FlareDrive";
 
 type Page = "root" | "language" | "theme";
-
-function Section({
-  title,
-  children,
-}: {
-  title: string;
-  children: ReactNode;
-}) {
-  return (
-    <Box sx={{ px: 2, pb: 2 }}>
-      <Typography
-        variant="subtitle2"
-        color="text.secondary"
-        sx={{ px: 1, py: 1 }}
-      >
-        {title}
-      </Typography>
-      <Paper variant="outlined" sx={{ overflow: "hidden" }}>
-        {children}
-      </Paper>
-    </Box>
-  );
-}
 
 export default function Settings({
   open,
@@ -86,25 +61,29 @@ export default function Settings({
         : t("settings.theme.system");
 
   return (
-    <Dialog open={open} onClose={onClose} fullWidth maxWidth="sm">
-      <DialogTitle sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+    <Dialog
+      open={open}
+      onClose={onClose}
+      fullWidth
+      maxWidth="md"
+      PaperProps={{ sx: { borderRadius: "16px", maxWidth: SETTINGS_MAX } }}
+    >
+      <DialogTitle sx={{ display: "flex", alignItems: "center", gap: 1, px: 2 }}>
         {page !== "root" && (
-          <IconButton onClick={() => setPage("root")} edge="start">
+          <IconTip title={t("common.cancel")} onClick={() => setPage("root")} edge="start">
             <ArrowBackIcon />
-          </IconButton>
+          </IconTip>
         )}
         {title}
-        <IconButton
-          onClick={onClose}
-          sx={{ ml: "auto" }}
-          aria-label={t("common.cancel")}
-        >
-          <CloseIcon />
-        </IconButton>
+        <Box sx={{ ml: "auto" }}>
+          <IconTip title={t("common.cancel")} onClick={onClose}>
+            <CloseIcon />
+          </IconTip>
+        </Box>
       </DialogTitle>
 
       {page === "root" && (
-        <>
+        <Box sx={{ pb: 1 }}>
           <Section title={t("settings.appearance")}>
             <List disablePadding>
               <ListItemButton onClick={() => setPage("language")}>
@@ -169,57 +148,63 @@ export default function Settings({
               </ListItemButton>
             </List>
           </Section>
-        </>
+        </Box>
       )}
 
       {page === "language" && (
-        <List>
-          {(["zh-CN", "en-US"] as Locale[]).map((code) => (
-            <ListItemButton
-              key={code}
-              selected={locale === code}
-              onClick={() => setLocale(code)}
-            >
-              <ListItemIcon>
-                <CheckIcon
-                  fontSize="small"
-                  sx={{ visibility: locale === code ? "visible" : "hidden" }}
-                />
-              </ListItemIcon>
-              <ListItemText>
-                {code === "zh-CN" ? t("lang.zh") : t("lang.en")}
-              </ListItemText>
-            </ListItemButton>
-          ))}
-        </List>
+        <Box sx={{ maxWidth: SETTINGS_MAX, mx: "auto", width: "100%", pb: 2 }}>
+          <List disablePadding>
+            {(["zh-CN", "en-US"] as Locale[]).map((code) => (
+              <ListItemButton
+                key={code}
+                selected={locale === code}
+                onClick={() => setLocale(code)}
+                sx={{ minHeight: 56, px: 2 }}
+              >
+                <ListItemIcon sx={{ minWidth: 40 }}>
+                  <CheckIcon
+                    fontSize="small"
+                    sx={{ visibility: locale === code ? "visible" : "hidden" }}
+                  />
+                </ListItemIcon>
+                <ListItemText>
+                  {code === "zh-CN" ? t("lang.zh") : t("lang.en")}
+                </ListItemText>
+              </ListItemButton>
+            ))}
+          </List>
+        </Box>
       )}
 
       {page === "theme" && (
-        <List>
-          {(
-            [
-              ["system", "settings.theme.system"],
-              ["light", "settings.theme.light"],
-              ["dark", "settings.theme.dark"],
-            ] as const
-          ).map(([value, key]) => (
-            <ListItemButton
-              key={value}
-              selected={appearance === value}
-              onClick={() => setAppearance(value as Appearance)}
-            >
-              <ListItemIcon>
-                <CheckIcon
-                  fontSize="small"
-                  sx={{
-                    visibility: appearance === value ? "visible" : "hidden",
-                  }}
-                />
-              </ListItemIcon>
-              <ListItemText>{t(key)}</ListItemText>
-            </ListItemButton>
-          ))}
-        </List>
+        <Box sx={{ maxWidth: SETTINGS_MAX, mx: "auto", width: "100%", pb: 2 }}>
+          <List disablePadding>
+            {(
+              [
+                ["system", "settings.theme.system"],
+                ["light", "settings.theme.light"],
+                ["dark", "settings.theme.dark"],
+              ] as const
+            ).map(([value, key]) => (
+              <ListItemButton
+                key={value}
+                selected={appearance === value}
+                onClick={() => setAppearance(value as Appearance)}
+                sx={{ minHeight: 56, px: 2 }}
+              >
+                <ListItemIcon sx={{ minWidth: 40 }}>
+                  <CheckIcon
+                    fontSize="small"
+                    sx={{
+                      visibility: appearance === value ? "visible" : "hidden",
+                    }}
+                  />
+                </ListItemIcon>
+                <ListItemText>{t(key)}</ListItemText>
+              </ListItemButton>
+            ))}
+          </List>
+        </Box>
       )}
 
       <Snackbar

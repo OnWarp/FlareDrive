@@ -72,6 +72,12 @@ const zhCN: Record<string, string> = {
   "storage.test": "测试连接",
   "storage.test.ok": "已连接",
   "storage.test.fail": "连接失败",
+  "storage.test.failHint": "请检查 Endpoint、Bucket 或凭证。",
+  "storage.group.basic": "基本信息",
+  "storage.group.s3": "S3 配置",
+  "storage.group.creds": "凭证",
+  "storage.deleteConfirm": "删除存储？",
+  "storage.deleteConfirmBody": "确定要删除「{name}」吗？这只会删除 FlareDrive 中的挂载配置，不会删除 S3 中的文件。",
 };
 
 export default zhCN;

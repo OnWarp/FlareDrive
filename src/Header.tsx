@@ -1,10 +1,9 @@
 import {
-  IconButton,
+  Divider,
   InputAdornment,
   InputBase,
   Menu,
   MenuItem,
-  Divider,
   Toolbar,
 } from "@mui/material";
 import { useState } from "react";
@@ -13,6 +12,7 @@ import {
   Search as SearchIcon,
 } from "@mui/icons-material";
 import { useT } from "./i18n";
+import { IconTip } from "./ui";
 
 function Header({
   search,
@@ -50,13 +50,9 @@ function Header({
           padding: "8px 16px",
         }}
       />
-      <IconButton
-        aria-label={t("nav.more")}
-        color="inherit"
-        onClick={(e) => setAnchorEl(e.currentTarget)}
-      >
+      <IconTip title={t("nav.more")} onClick={(e) => setAnchorEl(e.currentTarget)}>
         <MoreHorizIcon />
-      </IconButton>
+      </IconTip>
       <Menu
         anchorEl={anchorEl}
         open={Boolean(anchorEl)}
@@ -80,6 +76,7 @@ function Header({
         </MenuItem>
         <Divider />
         <MenuItem
+          sx={{ color: "error.main" }}
           onClick={() => {
             setAnchorEl(null);
             onLogout();

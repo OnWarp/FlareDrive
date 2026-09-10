@@ -72,6 +72,12 @@ const enUS = {
   "storage.test": "Test connection",
   "storage.test.ok": "Connected",
   "storage.test.fail": "Connection failed",
+  "storage.test.failHint": "Check endpoint, bucket, and credentials.",
+  "storage.group.basic": "Basics",
+  "storage.group.s3": "S3",
+  "storage.group.creds": "Credentials",
+  "storage.deleteConfirm": "Delete storage?",
+  "storage.deleteConfirmBody": "Remove “{name}” from FlareDrive? Files on the bucket are not deleted.",
 } satisfies Record<string, string>;
 
 export default enUS;

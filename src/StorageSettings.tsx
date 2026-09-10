@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import {
+  Alert,
   Box,
   Button,
   Dialog,
@@ -7,6 +8,8 @@ import {
   DialogContent,
   DialogTitle,
   IconButton,
+  InputAdornment,
+  List,
   ListItemButton,
   ListItemIcon,
   ListItemText,
@@ -18,10 +21,15 @@ import {
 } from "@mui/material";
 import {
   Check as CheckIcon,
+  Close as CloseIcon,
   Cloud as CloudIcon,
   MoreHoriz as MoreHorizIcon,
+  Visibility as VisibilityIcon,
+  VisibilityOff as VisibilityOffIcon,
 } from "@mui/icons-material";
+import { ConfirmDialog } from "./dialogs";
 import { useT } from "./i18n";
+import { IconTip } from "./ui";
 
 export type Mount = {
   id: string;
@@ -32,21 +40,25 @@ export type Mount = {
 };
 
 async function api(path: string, init?: RequestInit) {
-  const res = await fetch(path, {
+  return fetch(path, {
     credentials: "include",
     headers: { "Content-Type": "application/json", ...(init?.headers || {}) },
     ...init,
   });
-  return res;
 }
 
-export default function StoragePanel() {
+export function driverLabel(type: Mount["type"]) {
+  return type === "r2" ? "Cloudflare R2" : "Custom S3";
+}
+
+export default function StoragePanel({ onChanged }: { onChanged?: () => void }) {
   const t = useT();
   const [defaultId, setDefaultId] = useState("");
   const [mounts, setMounts] = useState<Mount[]>([]);
   const [addOpen, setAddOpen] = useState(false);
   const [edit, setEdit] = useState<Mount | null>(null);
   const [menu, setMenu] = useState<{ el: HTMLElement; mount: Mount } | null>(null);
+  const [pendingDelete, setPendingDelete] = useState<Mount | null>(null);
 
   async function reload() {
     const res = await api("/api/storage");
@@ -54,6 +66,7 @@ export default function StoragePanel() {
     const data = await res.json();
     setDefaultId(data.defaultId);
     setMounts(data.mounts);
+    onChanged?.();
   }
 
   useEffect(() => {
@@ -61,56 +74,40 @@ export default function StoragePanel() {
   }, []);
 
   return (
-    <Box>
-      <Typography variant="caption" color="text.secondary" sx={{ px: 2, pt: 1, display: "block" }}>
-        {t("storage.default")}
-      </Typography>
-      {mounts
-        .filter((m) => m.id === defaultId)
-        .map((m) => (
-          <ListItemButton key={m.id} selected>
+    <>
+      <List disablePadding>
+        {mounts.map((m) => (
+          <ListItemButton
+            key={m.id}
+            selected={m.id === defaultId}
+            onClick={() =>
+              api("/api/storage/default", {
+                method: "PUT",
+                body: JSON.stringify({ id: m.id }),
+              }).then(reload)
+            }
+          >
             <ListItemIcon>
-              <CheckIcon fontSize="small" />
+              <CloudIcon />
             </ListItemIcon>
-            <ListItemText primary={m.name} secondary={m.type === "r2" ? "Cloudflare R2" : "Custom S3"} />
+            <ListItemText primary={m.name} secondary={driverLabel(m.type)} />
+            {m.id === defaultId && <CheckIcon fontSize="small" color="primary" />}
+            <IconTip
+              title={t("nav.more")}
+              onClick={(e) => {
+                e.stopPropagation();
+                setMenu({ el: e.currentTarget, mount: m });
+              }}
+            >
+              <MoreHorizIcon />
+            </IconTip>
           </ListItemButton>
         ))}
-      <Typography variant="caption" color="text.secondary" sx={{ px: 2, pt: 1, display: "block" }}>
-        {t("storage.spaces")}
-      </Typography>
-      {mounts.map((m) => (
-        <ListItemButton
-          key={m.id}
-          onClick={() => api("/api/storage/default", { method: "PUT", body: JSON.stringify({ id: m.id }) }).then(reload)}
-        >
-          <ListItemIcon>
-            <CloudIcon />
-          </ListItemIcon>
-          <ListItemText
-            primary={m.name}
-            secondary={m.type === "r2" ? "Cloudflare R2" : "Custom S3"}
-          />
-          <IconButton
-            size="small"
-            onClick={(e) => {
-              e.stopPropagation();
-              setMenu({ el: e.currentTarget, mount: m });
-            }}
-          >
-            <MoreHorizIcon />
-          </IconButton>
+        <ListItemButton onClick={() => setAddOpen(true)}>
+          <ListItemText primary={`＋ ${t("storage.add")}`} />
         </ListItemButton>
-      ))}
-      <Box sx={{ p: 1.5 }}>
-        <Button fullWidth variant="outlined" onClick={() => setAddOpen(true)}>
-          {t("storage.add")}
-        </Button>
-      </Box>
-      <Menu
-        anchorEl={menu?.el}
-        open={Boolean(menu)}
-        onClose={() => setMenu(null)}
-      >
+      </List>
+      <Menu anchorEl={menu?.el} open={Boolean(menu)} onClose={() => setMenu(null)}>
         <MenuItem
           disabled={menu?.mount.builtin}
           onClick={() => {
@@ -122,11 +119,10 @@ export default function StoragePanel() {
         </MenuItem>
         <MenuItem
           disabled={menu?.mount.builtin}
-          onClick={async () => {
-            if (!menu || menu.mount.builtin) return;
-            await api(`/api/storage/${menu.mount.id}`, { method: "DELETE" });
+          sx={{ color: "error.main" }}
+          onClick={() => {
+            if (menu) setPendingDelete(menu.mount);
             setMenu(null);
-            reload();
           }}
         >
           {t("storage.delete")}
@@ -141,6 +137,32 @@ export default function StoragePanel() {
         }}
         onSaved={reload}
       />
+      <ConfirmDialog
+        open={Boolean(pendingDelete)}
+        title={t("storage.deleteConfirm")}
+        body={t("storage.deleteConfirmBody", { name: pendingDelete?.name || "" })}
+        confirmLabel={t("storage.delete")}
+        onClose={() => setPendingDelete(null)}
+        onConfirm={async () => {
+          if (!pendingDelete) return;
+          await api(`/api/storage/${pendingDelete.id}`, { method: "DELETE" });
+          setPendingDelete(null);
+          reload();
+        }}
+      />
+    </>
+  );
+}
+
+function Group({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <Box>
+      <Typography variant="overline" color="text.secondary">
+        {title}
+      </Typography>
+      <Stack spacing={1.5} sx={{ mt: 0.5 }}>
+        {children}
+      </Stack>
     </Box>
   );
 }
@@ -163,8 +185,10 @@ function StorageForm({
   const [bucket, setBucket] = useState("");
   const [accessKeyId, setAccessKeyId] = useState("");
   const [secret, setSecret] = useState("");
+  const [showSecret, setShowSecret] = useState(false);
   const [testing, setTesting] = useState(false);
-  const [testMsg, setTestMsg] = useState("");
+  const [testOk, setTestOk] = useState<boolean | null>(null);
+  const [testDetail, setTestDetail] = useState("");
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -175,52 +199,82 @@ function StorageForm({
     setBucket(mount?.s3?.bucket || "");
     setAccessKeyId(mount?.s3?.accessKeyId || "");
     setSecret("");
-    setTestMsg("");
+    setShowSecret(false);
+    setTestOk(null);
+    setTestDetail("");
   }, [open, mount]);
 
-  const payload = {
-    type: "s3",
-    name,
-    endpoint,
-    region,
-    bucket,
-    accessKeyId,
-    secretAccessKey: secret,
-  };
-
   return (
-    <Dialog open={open} onClose={onClose} fullWidth maxWidth="sm">
-      <DialogTitle>{mount ? t("storage.edit") : t("storage.add")}</DialogTitle>
+    <Dialog
+      open={open}
+      onClose={onClose}
+      fullWidth
+      maxWidth="sm"
+      PaperProps={{ sx: { borderRadius: "16px" } }}
+    >
+      <DialogTitle sx={{ display: "flex", alignItems: "center" }}>
+        {mount ? t("storage.edit") : t("storage.add")}
+        <Box sx={{ ml: "auto" }}>
+          <IconTip title={t("common.cancel")} onClick={onClose}>
+            <CloseIcon />
+          </IconTip>
+        </Box>
+      </DialogTitle>
       <DialogContent>
-        <Stack spacing={2} sx={{ mt: 1 }}>
-          <TextField label={t("storage.type")} value={t("storage.type.s3")} disabled fullWidth />
-          <TextField label={t("storage.name")} value={name} onChange={(e) => setName(e.target.value)} fullWidth />
-          <TextField label="Endpoint" value={endpoint} onChange={(e) => setEndpoint(e.target.value)} fullWidth />
-          <TextField label="Region" value={region} onChange={(e) => setRegion(e.target.value)} fullWidth />
-          <TextField label="Bucket" value={bucket} onChange={(e) => setBucket(e.target.value)} fullWidth />
-          <TextField
-            label="Access Key ID"
-            value={accessKeyId}
-            onChange={(e) => setAccessKeyId(e.target.value)}
-            fullWidth
-          />
-          <TextField
-            label="Secret Access Key"
-            type="password"
-            value={secret}
-            onChange={(e) => setSecret(e.target.value)}
-            placeholder={mount ? "••••••••" : ""}
-            fullWidth
-          />
-          {testMsg && <Typography variant="body2">{testMsg}</Typography>}
+        <Stack spacing={2.5} sx={{ mt: 1 }}>
+          <Group title={t("storage.group.basic")}>
+            <TextField label={t("storage.name")} value={name} onChange={(e) => setName(e.target.value)} fullWidth />
+            <TextField label={t("storage.type")} value={t("storage.type.s3")} disabled fullWidth />
+          </Group>
+          <Group title={t("storage.group.s3")}>
+            <TextField label="Endpoint" value={endpoint} onChange={(e) => setEndpoint(e.target.value)} fullWidth />
+            <TextField label="Region" value={region} onChange={(e) => setRegion(e.target.value)} fullWidth />
+            <TextField label="Bucket" value={bucket} onChange={(e) => setBucket(e.target.value)} fullWidth />
+          </Group>
+          <Group title={t("storage.group.creds")}>
+            <TextField
+              label="Access Key ID"
+              value={accessKeyId}
+              onChange={(e) => setAccessKeyId(e.target.value)}
+              fullWidth
+            />
+            <TextField
+              label="Secret Access Key"
+              type={showSecret ? "text" : "password"}
+              value={secret}
+              onChange={(e) => setSecret(e.target.value)}
+              placeholder={mount ? "••••••••" : ""}
+              fullWidth
+              InputProps={{
+                endAdornment: (
+                  <InputAdornment position="end">
+                    <IconButton
+                      onClick={() => setShowSecret((v) => !v)}
+                      aria-label={showSecret ? t("login.hidePassword") : t("login.showPassword")}
+                    >
+                      {showSecret ? <VisibilityOffIcon /> : <VisibilityIcon />}
+                    </IconButton>
+                  </InputAdornment>
+                ),
+              }}
+            />
+          </Group>
+          {testOk === true && <Alert severity="success">{t("storage.test.ok")}</Alert>}
+          {testOk === false && (
+            <Alert severity="warning">
+              {t("storage.test.fail")}
+              {testDetail ? ` — ${testDetail}` : ` ${t("storage.test.failHint")}`}
+            </Alert>
+          )}
         </Stack>
       </DialogContent>
-      <DialogActions>
+      <DialogActions sx={{ px: 3, pb: 2, justifyContent: "space-between" }}>
         <Button
+          variant="outlined"
           disabled={testing}
           onClick={async () => {
             setTesting(true);
-            setTestMsg("");
+            setTestOk(null);
             const res = await api("/api/storage/test", {
               method: "POST",
               body: JSON.stringify({
@@ -233,32 +287,47 @@ function StorageForm({
               }),
             });
             const data = await res.json();
-            setTestMsg(data.ok ? t("storage.test.ok") : data.error || t("storage.test.fail"));
+            setTestOk(Boolean(data.ok));
+            setTestDetail(data.ok ? "" : data.error || "");
             setTesting(false);
           }}
         >
           {t("storage.test")}
         </Button>
-        <Button onClick={onClose}>{t("common.cancel")}</Button>
-        <Button
-          variant="contained"
-          disabled={saving}
-          onClick={async () => {
-            setSaving(true);
-            if (mount) {
-              const body: any = { name, endpoint, region, bucket, accessKeyId };
-              if (secret) body.secretAccessKey = secret;
-              await api(`/api/storage/${mount.id}`, { method: "PUT", body: JSON.stringify(body) });
-            } else {
-              await api("/api/storage", { method: "POST", body: JSON.stringify(payload) });
-            }
-            setSaving(false);
-            onClose();
-            onSaved();
-          }}
-        >
-          {t("common.save")}
-        </Button>
+        <Box>
+          <Button onClick={onClose}>{t("common.cancel")}</Button>
+          <Button
+            variant="contained"
+            disabled={saving}
+            sx={{ ml: 1 }}
+            onClick={async () => {
+              setSaving(true);
+              if (mount) {
+                const body: Record<string, string> = { name, endpoint, region, bucket, accessKeyId };
+                if (secret) body.secretAccessKey = secret;
+                await api(`/api/storage/${mount.id}`, { method: "PUT", body: JSON.stringify(body) });
+              } else {
+                await api("/api/storage", {
+                  method: "POST",
+                  body: JSON.stringify({
+                    type: "s3",
+                    name,
+                    endpoint,
+                    region,
+                    bucket,
+                    accessKeyId,
+                    secretAccessKey: secret,
+                  }),
+                });
+              }
+              setSaving(false);
+              onClose();
+              onSaved();
+            }}
+          >
+            {t("common.save")}
+          </Button>
+        </Box>
       </DialogActions>
     </Dialog>
   );

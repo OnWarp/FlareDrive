@@ -6,6 +6,8 @@ import {
   Button,
   CircularProgress,
   Link,
+  Menu,
+  MenuItem,
   Typography,
 } from "@mui/material";
 import { Home as HomeIcon, NoteAdd as NoteAddIcon } from "@mui/icons-material";
@@ -18,6 +20,7 @@ import { copyPaste, fetchPath } from "./app/transfer";
 import { useTransferQueue, useUploadEnqueue } from "./app/transferQueue";
 import { ConfirmDialog, PromptDialog } from "./dialogs";
 import { useT } from "./i18n";
+import type { Mount } from "./StorageSettings";
 
 // Centered helper
 function Centered({ children }: { children: React.ReactNode }) {
@@ -39,17 +42,50 @@ function Centered({ children }: { children: React.ReactNode }) {
 function PathBreadcrumb({
   path,
   onCwdChange,
+  storageName,
+  mounts,
+  defaultId,
+  onPickStorage,
 }: {
   path: string;
   onCwdChange: (newCwd: string) => void;
+  storageName: string;
+  mounts: Mount[];
+  defaultId: string;
+  onPickStorage: (id: string) => void;
 }) {
-  const parts = path.replace(/\/$/, "").split("/");
+  const parts = path.replace(/\/$/, "").split("/").filter(Boolean);
+  const [anchor, setAnchor] = React.useState<null | HTMLElement>(null);
 
   return (
     <Breadcrumbs separator="›" sx={{ padding: 1 }}>
-      <Button onClick={() => onCwdChange("")} sx={{ minWidth: 0, padding: 0 }}>
-        <HomeIcon />
+      <Button
+        size="small"
+        onClick={(e) => setAnchor(e.currentTarget)}
+        sx={{ minWidth: 0, textTransform: "none" }}
+      >
+        {storageName || "R2"} ▾
       </Button>
+      <Menu anchorEl={anchor} open={Boolean(anchor)} onClose={() => setAnchor(null)}>
+        {mounts.map((m) => (
+          <MenuItem
+            key={m.id}
+            selected={m.id === defaultId}
+            onClick={() => {
+              setAnchor(null);
+              onPickStorage(m.id);
+            }}
+          >
+            {m.id === defaultId ? "✓ " : "  "}
+            {m.name}
+          </MenuItem>
+        ))}
+      </Menu>
+      {parts.length > 0 && (
+        <Button onClick={() => onCwdChange("")} sx={{ minWidth: 0, padding: 0 }}>
+          <HomeIcon fontSize="small" />
+        </Button>
+      )}
       {parts.map((part, index) =>
         index === parts.length - 1 ? (
           <Typography key={index} color="text.primary">
@@ -128,6 +164,8 @@ function Main({
   const [lastUploadKey, setLastUploadKey] = useState<string | null>(null);
   const [renameOpen, setRenameOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
+  const [mounts, setMounts] = useState<Mount[]>([]);
+  const [defaultId, setDefaultId] = useState("");
 
   const transferQueue = useTransferQueue();
   const uploadEnqueue = useUploadEnqueue();
@@ -141,6 +179,16 @@ function Main({
       .catch(onError)
       .finally(() => setLoading(false));
   }, [cwd, onError]);
+
+  useEffect(() => {
+    fetch("/api/storage", { credentials: "include" })
+      .then((r) => r.json())
+      .then((data) => {
+        setMounts(data.mounts || []);
+        setDefaultId(data.defaultId || "");
+      })
+      .catch(() => {});
+  }, []);
 
   useEffect(() => setLoading(true), [cwd]);
 
@@ -183,7 +231,24 @@ function Main({
 
   return (
     <>
-      {cwd && <PathBreadcrumb path={cwd} onCwdChange={setCwd} />}
+      <PathBreadcrumb
+        path={cwd}
+        onCwdChange={setCwd}
+        storageName={mounts.find((m) => m.id === defaultId)?.name || ""}
+        mounts={mounts}
+        defaultId={defaultId}
+        onPickStorage={async (id) => {
+          await fetch("/api/storage/default", {
+            method: "PUT",
+            credentials: "include",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ id }),
+          });
+          setDefaultId(id);
+          setCwd("");
+          setLoading(true);
+        }}
+      />
 
       {loading ? (
         <Centered>
