@@ -16,6 +16,9 @@
       "/api/*"
     ]
   },
+  "vars": {
+    "STORAGE_QUOTA": "10GB"
+  },
   "r2_buckets": [
     {
       "binding": "BUCKET",

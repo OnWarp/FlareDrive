@@ -51,6 +51,7 @@ const zhCN: Record<string, string> = {
   "settings.storage.r2Name": "Cloudflare R2",
   "settings.storage.connected": "已连接",
   "settings.storage.hint": "S3、OneDrive 挂载会放在这里。",
+  "settings.storage.usage": "{used} / {total}",
   "settings.webdav": "WebDAV",
   "settings.webdav.endpoint": "WebDAV 地址",
   "settings.webdav.copy": "复制",

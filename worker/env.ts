@@ -6,5 +6,6 @@ export interface Env {
   WEBDAV_USERNAME: string;
   WEBDAV_PASSWORD: string;
   WEBDAV_PUBLIC_READ?: string;
+  STORAGE_QUOTA?: string;
   [key: string]: unknown;
 }

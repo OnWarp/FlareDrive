@@ -1,5 +1,6 @@
 import type { Env } from "./env";
 import { authorizeDav, handleAuthApi } from "./auth";
+import { handleUsageApi } from "./storage/usage";
 import { R2Provider } from "./storage/providers/r2";
 import { handleRequestCopy } from "./webdav/copy";
 import { handleRequestDelete } from "./webdav/delete";
@@ -70,6 +71,9 @@ export default {
 
     if (path.startsWith("/api/auth")) {
       return handleAuthApi(request, env);
+    }
+    if (path === "/api/storage/usage") {
+      return handleUsageApi(request, env);
     }
     if (davPrefixFromPath(path)) {
       return handleWebdav(request, env);

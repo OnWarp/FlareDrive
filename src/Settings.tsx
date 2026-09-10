@@ -1,15 +1,18 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Box,
   Dialog,
   DialogTitle,
+  LinearProgress,
   List,
+  ListItem,
   ListItemButton,
   ListItemIcon,
   ListItemText,
   Menu,
   MenuItem,
   Snackbar,
+  Typography,
 } from "@mui/material";
 import {
   Check as CheckIcon,
@@ -20,6 +23,7 @@ import { useAppearance, type Appearance } from "./appearance";
 import { useLocale, useT } from "./i18n";
 import type { Locale } from "./i18n/types";
 import { IconTip, SETTINGS_MAX, Section, useCompactScreen } from "./ui";
+import { humanReadableSize } from "./app/utils";
 
 const VERSION = "0.2.0";
 const GITHUB = "https://github.com/OnWarp/FlareDrive";
@@ -38,8 +42,31 @@ export default function Settings({
   const [copied, setCopied] = useState(false);
   const [langEl, setLangEl] = useState<null | HTMLElement>(null);
   const [themeEl, setThemeEl] = useState<null | HTMLElement>(null);
+  const [usage, setUsage] = useState<{
+    usedBytes: number;
+    quotaBytes: number;
+  } | null>(null);
   const origin = typeof window === "undefined" ? "" : window.location.origin;
   const davUrl = `${origin}/dav`;
+
+  useEffect(() => {
+    if (!open) return;
+    let cancelled = false;
+    fetch("/api/storage/usage", { credentials: "include" })
+      .then((r) => (r.ok ? r.json() : Promise.reject()))
+      .then((data: { usedBytes?: number; quotaBytes?: number }) => {
+        if (cancelled) return;
+        if (typeof data.usedBytes === "number" && typeof data.quotaBytes === "number") {
+          setUsage({ usedBytes: data.usedBytes, quotaBytes: data.quotaBytes });
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setUsage(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [open]);
 
   const themeLabel =
     appearance === "light"
@@ -92,12 +119,54 @@ export default function Settings({
 
         <Section title={t("settings.storage")}>
           <List disablePadding>
-            <ListItemButton disabled>
-              <ListItemText
-                primary={t("settings.storage.r2")}
-                secondary={t("settings.storage.r2Name")}
+            <ListItem
+              sx={{
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "stretch",
+                py: 1.5,
+                px: 2,
+                minHeight: 56,
+              }}
+            >
+              <Box
+                sx={{
+                  display: "flex",
+                  alignItems: "baseline",
+                  justifyContent: "space-between",
+                  gap: 1,
+                  mb: 1,
+                }}
+              >
+                <ListItemText
+                  sx={{ m: 0 }}
+                  primary={t("settings.storage.r2")}
+                  secondary={t("settings.storage.r2Name")}
+                />
+                <Typography variant="body2" color="text.secondary" sx={{ flexShrink: 0 }}>
+                  {usage
+                    ? t("settings.storage.usage", {
+                        used: humanReadableSize(usage.usedBytes),
+                        total: humanReadableSize(usage.quotaBytes),
+                      })
+                    : "…"}
+                </Typography>
+              </Box>
+              <LinearProgress
+                variant={usage ? "determinate" : "indeterminate"}
+                value={
+                  usage && usage.quotaBytes > 0
+                    ? Math.min(100, (usage.usedBytes / usage.quotaBytes) * 100)
+                    : 0
+                }
+                color={
+                  usage && usage.quotaBytes > 0 && usage.usedBytes / usage.quotaBytes >= 0.9
+                    ? "warning"
+                    : "primary"
+                }
+                sx={{ height: 6, borderRadius: 3 }}
               />
-            </ListItemButton>
+            </ListItem>
           </List>
         </Section>
 

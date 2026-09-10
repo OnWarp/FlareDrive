@@ -51,6 +51,7 @@ const enUS = {
   "settings.storage.r2Name": "Cloudflare R2",
   "settings.storage.connected": "Connected",
   "settings.storage.hint": "S3 and OneDrive mounts will land here later.",
+  "settings.storage.usage": "{used} / {total}",
   "settings.webdav": "WebDAV",
   "settings.webdav.endpoint": "WebDAV URL",
   "settings.webdav.copy": "Copy",
